@@ -1,0 +1,18 @@
+# Dependencies
+client/node_modules/
+
+# Build output
+client/dist/
+
+# Environment variables (GİZLİ - asla push etme!)
+client/.env
+client/.env.local
+client/.env.production
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
