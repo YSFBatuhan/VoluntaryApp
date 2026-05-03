@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
 export default function RecordingStudio() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioURL, setAudioURL] = useState(null);
   const [duration, setDuration] = useState(0);
-  const [currentBook, setCurrentBook] = useState('The Secret Garden');
-  const [currentChapter, setCurrentChapter] = useState('Chapter 12: Might it be a Garden?');
+  const [currentBook] = useState('The Secret Garden');
+  const [currentChapter] = useState('Chapter 12: Might it be a Garden?');
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);

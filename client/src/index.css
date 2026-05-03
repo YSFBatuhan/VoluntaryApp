@@ -5,6 +5,7 @@
   --color-primary-dark: #7A8966;
   --color-text-dark: #2C3930; /* Koyu Orman yeşili */
   --color-text-muted: #7A8077;
+  --color-white: #FFFFFF;
   --color-border: #EFEFEF;
   --sidebar-width: 260px;
   --border-radius-lg: 12px;
@@ -649,6 +650,34 @@ body {
   color: var(--color-text-muted);
 }
 
+.pdf-preview {
+  background: #f8faf6;
+  border: 1px solid #dde8d5;
+  border-radius: var(--border-radius-lg);
+  padding: 1rem;
+  color: var(--color-text-dark);
+}
+
+.pdf-preview p {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  margin: 0.5rem 0 0;
+}
+
+.inline-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-text-dark);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.inline-check input {
+  width: 18px;
+  height: 18px;
+}
+
 /* ============================
    RECORDING STUDIO PAGE
 ============================ */
@@ -685,4 +714,247 @@ body {
 @keyframes wavePulse {
   from { height: 8px; opacity: 0.5; }
   to   { height: 60px; opacity: 1; }
+}
+
+/* ============================
+   BLIND LISTENER MODE
+============================ */
+.blind-page {
+  min-height: 100vh;
+  background: #050704;
+  color: #fff9b8;
+  padding: 32px;
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr;
+  gap: 24px;
+}
+
+.blind-hero {
+  max-width: 980px;
+}
+
+.blind-kicker {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  margin: 0 0 10px;
+}
+
+.blind-hero h1 {
+  color: #fff04d;
+  font-size: 4rem;
+  line-height: 1;
+  margin: 0;
+}
+
+.blind-status {
+  color: #ffffff;
+  font-size: 1.45rem;
+  line-height: 1.5;
+  max-width: 860px;
+  margin: 18px 0 0;
+}
+
+.blind-controls {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 18px;
+}
+
+.blind-primary-action,
+.blind-secondary-action,
+.blind-search button,
+.blind-book {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.blind-primary-action,
+.blind-secondary-action {
+  min-height: 168px;
+  border: 4px solid #fff04d;
+  border-radius: 8px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.blind-primary-action {
+  background: #fff04d;
+  color: #050704;
+  font-size: 3.25rem;
+}
+
+.blind-secondary-action {
+  background: #101510;
+  color: #ffffff;
+  font-size: 2.5rem;
+}
+
+.blind-primary-action:focus-visible,
+.blind-secondary-action:focus-visible,
+.blind-search input:focus,
+.blind-search button:focus-visible,
+.blind-book:focus-visible {
+  outline: 6px solid #ffffff;
+  outline-offset: 4px;
+}
+
+.blind-search {
+  display: grid;
+  gap: 10px;
+}
+
+.blind-mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.blind-mode-button {
+  min-height: 92px;
+  border: 3px solid #fff04d;
+  border-radius: 8px;
+  background: #101510;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 1.55rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.blind-mode-button.active {
+  background: #fff04d;
+  color: #050704;
+}
+
+.blind-mode-button:focus-visible {
+  outline: 6px solid #ffffff;
+  outline-offset: 4px;
+}
+
+.blind-search label {
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.blind-search-row {
+  display: grid;
+  grid-template-columns: 1fr 180px;
+  gap: 12px;
+}
+
+.blind-search input {
+  min-height: 72px;
+  border: 3px solid #fff04d;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #050704;
+  font-size: 1.2rem;
+  padding: 0 20px;
+}
+
+.blind-search button {
+  min-height: 72px;
+  border: 3px solid #fff04d;
+  border-radius: 8px;
+  background: #fff04d;
+  color: #050704;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.blind-now-playing {
+  border: 3px solid #3b4638;
+  border-radius: 8px;
+  padding: 22px;
+  background: #101510;
+}
+
+.blind-now-playing span {
+  color: #fff04d;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.blind-now-playing h2 {
+  color: #ffffff;
+  font-size: 2.2rem;
+  margin: 8px 0;
+}
+
+.blind-now-playing p {
+  color: #fff9b8;
+  font-size: 1.15rem;
+  margin: 6px 0;
+}
+
+.blind-library {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.blind-library-header {
+  color: #fff04d;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.blind-book {
+  min-height: 132px;
+  border: 3px solid #3b4638;
+  border-radius: 8px;
+  background: #101510;
+  color: #ffffff;
+  padding: 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+}
+
+.blind-book.active {
+  border-color: #fff04d;
+  background: #1b2118;
+}
+
+.blind-book strong {
+  color: #fff04d;
+  font-size: 1.35rem;
+}
+
+.blind-book span {
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 860px) {
+  .blind-page {
+    padding: 20px;
+  }
+
+  .blind-hero h1 {
+    font-size: 3rem;
+  }
+
+  .blind-status {
+    font-size: 1.2rem;
+  }
+
+  .blind-controls,
+  .blind-mode-switch,
+  .blind-search-row,
+  .blind-library {
+    grid-template-columns: 1fr;
+  }
+
+  .blind-primary-action,
+  .blind-secondary-action {
+    min-height: 132px;
+    font-size: 2.2rem;
+  }
 }

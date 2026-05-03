@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { createAudioBook, createPdfBook } from '../services/libraryService';
+import { extractPdfBook } from '../services/pdfService';
 
 // Ses dosyaları için Cloudinary kullanılacak (ücretsiz 25GB)
 // uploadAudio fonksiyonu Cloudinary entegrasyonu tamamlandığında buraya eklenecek
@@ -38,11 +38,16 @@ export default function BookManagement() {
     title: '', author: '', category: 'Roman', chapterTitle: '', language: 'Türkçe', notes: ''
   });
   const [audioFile, setAudioFile] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfInfo, setPdfInfo] = useState(null);
+  const [publishImmediately, setPublishImmediately] = useState(true);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [processingPdf, setProcessingPdf] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef();
+  const pdfInputRef = useRef();
 
   function handleFileChange(e) {
     const file = e.target.files[0];
@@ -52,6 +57,36 @@ export default function BookManagement() {
     } else {
       setError('Lütfen geçerli bir ses dosyası seçin (.mp3, .wav)');
     }
+  }
+
+  async function handlePdfFile(file) {
+    if (!file) return;
+
+    setError('');
+    setSuccessMsg('');
+    setPdfInfo(null);
+
+    try {
+      setProcessingPdf(true);
+      const extracted = await extractPdfBook(file);
+      setPdfFile(file);
+      setPdfInfo(extracted);
+    } catch (err) {
+      setPdfFile(null);
+      setError('PDF işlenemedi: ' + err.message);
+    } finally {
+      setProcessingPdf(false);
+    }
+  }
+
+  function resetForm() {
+    setForm({ title: '', author: '', category: 'Roman', chapterTitle: '', language: 'Türkçe', notes: '' });
+    setAudioFile(null);
+    setPdfFile(null);
+    setPdfInfo(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (pdfInputRef.current) pdfInputRef.current.value = '';
   }
 
   async function handleUpload(e) {
@@ -68,36 +103,45 @@ export default function BookManagement() {
       const audioUrl = await uploadAudioToCloudinary(audioFile, setUploadProgress);
 
       // 2. Firestore'a kitap + bölüm bilgilerini kaydet
-      const bookRef = await addDoc(collection(db, 'books'), {
-        title: form.title,
-        author: form.author,
-        category: form.category,
-        language: form.language,
-        notes: form.notes,
-        uploadedBy: currentUser.uid,
-        uploaderName: userProfile?.name || currentUser.displayName,
-        status: 'pending',
-        createdAt: serverTimestamp()
-      });
-
-      await addDoc(collection(db, 'chapters'), {
-        bookId: bookRef.id,
-        chapterTitle: form.chapterTitle,
-        audioUrl,
-        duration: 0,
-        recordedBy: currentUser.uid,
-        createdAt: serverTimestamp()
-      });
+      await createAudioBook({ form, audioUrl, currentUser, userProfile });
 
       setSuccessMsg(`"${form.title}" başarıyla yüklendi! Admin onayından sonra yayınlanacak.`);
-      setForm({ title: '', author: '', category: 'Roman', chapterTitle: '', language: 'Türkçe', notes: '' });
-      setAudioFile(null);
-      setUploadProgress(0);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      resetForm();
     } catch (err) {
       setError('Hata: ' + err.message);
     }
     setUploading(false);
+  }
+
+  async function handlePdfUpload(e) {
+    e.preventDefault();
+    if (!pdfFile || !pdfInfo) return setError('Lütfen önce seçilebilir metin içeren bir PDF seçin.');
+    if (!form.title) return setError('Kitap adı zorunludur.');
+
+    setUploading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      await createPdfBook({
+        form: { ...form, chapterTitle: form.chapterTitle || 'Tam Metin' },
+        pdfInfo,
+        currentUser,
+        userProfile,
+        publishImmediately,
+      });
+
+      setSuccessMsg(
+        publishImmediately
+          ? `"${form.title}" PDF metniyle eklendi ve Dinleme Modu'nda görünecek.`
+          : `"${form.title}" PDF metniyle eklendi. Admin onayından sonra yayınlanacak.`,
+      );
+      resetForm();
+    } catch (err) {
+      setError('PDF kaydedilemedi: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -111,6 +155,9 @@ export default function BookManagement() {
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'upload' ? 'active' : ''}`} onClick={() => setTab('upload')}>
           📁 Yeni Yükle
+        </button>
+        <button className={`tab-btn ${tab === 'pdf' ? 'active' : ''}`} onClick={() => setTab('pdf')}>
+          📄 PDF Ekle
         </button>
         <button className={`tab-btn ${tab === 'mybooks' ? 'active' : ''}`} onClick={() => setTab('mybooks')}>
           📚 Kitaplarım
@@ -233,6 +280,139 @@ export default function BookManagement() {
                 <div className="timeline-item done"><span>✓</span><div><strong>Yükleme</strong><p>Dosyanızı platforma gönderin</p></div></div>
                 <div className="timeline-item"><span>2</span><div><strong>Kalite Kontrol</strong><p>Admin ekibi inceliyor</p></div></div>
                 <div className="timeline-item"><span>3</span><div><strong>Yayın</strong><p>Dinleyiciler erişebilir</p></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'pdf' && (
+        <div className="upload-grid">
+          <div className="card upload-form-card">
+            <h3>PDF ile Kitap Ekle</h3>
+
+            {error && <div className="auth-error">{error}</div>}
+            {successMsg && <div className="success-msg">{successMsg}</div>}
+
+            <form onSubmit={handlePdfUpload} className="auth-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Kitap Adı *</label>
+                  <input type="text" placeholder="Ör: Nutuk" value={form.title}
+                    onChange={e => setForm({ ...form, title: e.target.value })} required />
+                </div>
+                <div className="form-group">
+                  <label>Yazar</label>
+                  <input type="text" placeholder="Ör: Mustafa Kemal Atatürk" value={form.author}
+                    onChange={e => setForm({ ...form, author: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Bölüm Adı</label>
+                  <input type="text" placeholder="Tam Metin" value={form.chapterTitle}
+                    onChange={e => setForm({ ...form, chapterTitle: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label>Kategori</label>
+                  <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Dil</label>
+                <select value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}>
+                  <option>Türkçe</option>
+                  <option>İngilizce</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Notlar</label>
+                <textarea placeholder="PDF kaynağı, okuma notları, uyarılar..." value={form.notes}
+                  onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} />
+              </div>
+
+              <div
+                className="dropzone"
+                onClick={() => pdfInputRef.current.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); handlePdfFile(e.dataTransfer.files[0]); }}
+              >
+                {processingPdf ? (
+                  <div className="dropzone-empty">
+                    <span style={{ fontSize: '2.5rem' }}>⏳</span>
+                    <p><strong>PDF metni çıkarılıyor...</strong></p>
+                  </div>
+                ) : pdfInfo ? (
+                  <div className="dropzone-selected">
+                    <span>📄</span>
+                    <div>
+                      <strong>{pdfFile.name}</strong>
+                      <p>{pdfInfo.pageCount} sayfa • {pdfInfo.chunks.length} metin parçası • {pdfInfo.wordCount} kelime</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="dropzone-empty">
+                    <span style={{ fontSize: '2.5rem' }}>📄</span>
+                    <p><strong>Seçilebilir metinli PDF seçin</strong></p>
+                    <p className="dropzone-hint">PDF • Maks 20MB • Taranmış PDF için OCR yok</p>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  ref={pdfInputRef}
+                  accept="application/pdf,.pdf"
+                  onChange={e => handlePdfFile(e.target.files[0])}
+                  hidden
+                />
+              </div>
+
+              {pdfInfo && (
+                <div className="pdf-preview">
+                  <strong>İlk metin önizlemesi</strong>
+                  <p>{pdfInfo.chunks[0]?.text.slice(0, 420)}...</p>
+                </div>
+              )}
+
+              <label className="inline-check">
+                <input
+                  type="checkbox"
+                  checked={publishImmediately}
+                  onChange={e => setPublishImmediately(e.target.checked)}
+                />
+                MVP testi için Dinleme Modu'nda hemen göster
+              </label>
+
+              <button type="submit" className="btn-sage btn-auth" disabled={uploading || processingPdf} style={{ marginTop: '1rem' }}>
+                {uploading ? 'PDF kaydediliyor...' : 'PDF Metnini Sisteme Ekle'}
+              </button>
+            </form>
+          </div>
+
+          <div>
+            <div className="card dark-card">
+              <h3 style={{ color: '#fff' }}>PDF Okuma Mantığı</h3>
+              <p style={{ color: '#b0c8a8', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+                Bu akış PDF'i MP3'e çevirmiyor. Metni çıkarıyor, parçalara ayırıyor ve Dinleme Modu Web Speech API ile okuyor.
+              </p>
+              <ul style={{ color: '#c8ddc0', paddingLeft: '1.2rem', lineHeight: '2' }}>
+                <li>Ücretli TTS kullanılmaz</li>
+                <li>Ses dosyası depolanmaz</li>
+                <li>Seçilebilir metinli PDF gerekir</li>
+                <li>Taranmış PDF için OCR sonraki faz</li>
+              </ul>
+            </div>
+
+            <div className="card" style={{ marginTop: '1.5rem' }}>
+              <h3>📋 PDF Süreci</h3>
+              <div className="timeline">
+                <div className="timeline-item done"><span>1</span><div><strong>Metin Çıkarma</strong><p>Tarayıcı PDF'i işler</p></div></div>
+                <div className="timeline-item"><span>2</span><div><strong>Chunk Oluşturma</strong><p>Metin küçük parçalara ayrılır</p></div></div>
+                <div className="timeline-item"><span>3</span><div><strong>Dinleme</strong><p>Blind Mode metni seslendirir</p></div></div>
               </div>
             </div>
           </div>

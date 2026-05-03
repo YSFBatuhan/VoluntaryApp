@@ -1,0 +1,48 @@
+export const GTU_DEPARTMENTS = [
+  { id: 'bilgisayar', name: 'Bilgisayar Muhendisligi', keywords: ['bilgisayar', 'computer'] },
+  { id: 'elektronik', name: 'Elektronik Muhendisligi', keywords: ['elektronik', 'electronics'] },
+  { id: 'makine', name: 'Makine Muhendisligi', keywords: ['makine', 'mechanical'] },
+  { id: 'malzeme', name: 'Malzeme Bilimi ve Muhendisligi', keywords: ['malzeme', 'materials'] },
+  { id: 'kimya-muhendisligi', name: 'Kimya Muhendisligi', keywords: ['kimya muhendisligi'] },
+  { id: 'cevre', name: 'Cevre Muhendisligi', keywords: ['cevre', 'çevre'] },
+  { id: 'harita', name: 'Harita Muhendisligi', keywords: ['harita', 'geomatics'] },
+  { id: 'insaat', name: 'Insaat Muhendisligi', keywords: ['insaat', 'inşaat', 'civil'] },
+  { id: 'biyomuhendislik', name: 'Biyomuhendislik', keywords: ['biyomuhendislik', 'bioengineering'] },
+  { id: 'mimarlik', name: 'Mimarlik', keywords: ['mimarlik', 'mimarlık', 'architecture'] },
+  { id: 'sehir-planlama', name: 'Sehir ve Bolge Planlama', keywords: ['sehir', 'şehir', 'planlama'] },
+  { id: 'endustriyel-tasarim', name: 'Endustriyel Tasarim', keywords: ['endustriyel', 'tasarim', 'tasarım'] },
+  { id: 'matematik', name: 'Matematik', keywords: ['matematik', 'math'] },
+  { id: 'fizik', name: 'Fizik', keywords: ['fizik', 'physics'] },
+  { id: 'kimya', name: 'Kimya', keywords: ['kimya', 'chemistry'] },
+  { id: 'molekuler-biyoloji', name: 'Molekuler Biyoloji ve Genetik', keywords: ['molekuler', 'moleküler', 'biyoloji', 'genetik'] },
+  { id: 'isletme', name: 'Isletme', keywords: ['isletme', 'işletme', 'business'] },
+  { id: 'iktisat', name: 'Iktisat', keywords: ['iktisat', 'economics'] },
+  { id: 'strateji', name: 'Strateji Bilimi', keywords: ['strateji'] },
+];
+
+export const SAMPLE_GTU_ANNOUNCEMENTS = [
+  {
+    id: 'sample-1',
+    departmentId: 'bilgisayar',
+    title: 'Ornek duyuru: Bitirme projesi teslim takvimi',
+    summary: 'Bu kayit deneme verisidir. Gercek GTU duyurulari Firestore veya kaynak import akisi ile beslenecektir.',
+    dateText: 'Deneme',
+    detailUrl: '',
+  },
+  {
+    id: 'sample-2',
+    departmentId: 'matematik',
+    title: 'Ornek duyuru: Ara sinav salon bilgileri',
+    summary: 'Bu kayit deneme verisidir. Duyuru detaylari sesli olarak okunabilir bicimde tasarlanmistir.',
+    dateText: 'Deneme',
+    detailUrl: '',
+  },
+  {
+    id: 'sample-3',
+    departmentId: 'mimarlik',
+    title: 'Ornek duyuru: Juri programi bilgilendirmesi',
+    summary: 'Bu kayit deneme verisidir. Bolum duyurulari hiyerarsik olarak gezilecektir.',
+    dateText: 'Deneme',
+    detailUrl: '',
+  },
+];

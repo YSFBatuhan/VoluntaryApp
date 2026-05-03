@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -16,7 +16,7 @@ export default function Login() {
     try {
       await login(form.email, form.password);
       navigate('/dashboard');
-    } catch (err) {
+    } catch {
       setError('E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
     }
     setLoading(false);
