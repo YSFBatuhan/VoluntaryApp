@@ -1,4 +1,7 @@
+import { GENERATED_GTU_ANNOUNCEMENTS } from './generatedGtuAnnouncements';
+
 export const GTU_DEPARTMENTS = [
+  { id: 'gtu-genel', name: 'GTU Genel Duyurular', keywords: ['gtu', 'genel', 'duyuru', 'duyurular'] },
   { id: 'bilgisayar', name: 'Bilgisayar Muhendisligi', keywords: ['bilgisayar', 'computer'] },
   { id: 'elektronik', name: 'Elektronik Muhendisligi', keywords: ['elektronik', 'electronics'] },
   { id: 'makine', name: 'Makine Muhendisligi', keywords: ['makine', 'mechanical'] },
@@ -46,3 +49,6 @@ export const SAMPLE_GTU_ANNOUNCEMENTS = [
     detailUrl: '',
   },
 ];
+
+export const GTU_ANNOUNCEMENTS =
+  GENERATED_GTU_ANNOUNCEMENTS.length > 0 ? GENERATED_GTU_ANNOUNCEMENTS : SAMPLE_GTU_ANNOUNCEMENTS;

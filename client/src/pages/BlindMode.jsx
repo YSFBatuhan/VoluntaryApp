@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { getBookTextChunks, getPublishedBooks } from '../services/libraryService';
 import { normalizeText } from '../services/textUtils';
-import { GTU_DEPARTMENTS, SAMPLE_GTU_ANNOUNCEMENTS } from '../data/gtuAnnouncements';
+import { GTU_ANNOUNCEMENTS, GTU_DEPARTMENTS } from '../data/gtuAnnouncements';
 
 const MOCK_BOOKS = [
   {
@@ -36,6 +36,9 @@ const MOCK_BOOKS = [
 const WELCOME_MESSAGE =
   'GTU EchoVoices dinleme moduna hos geldiniz. Arama yapmak icin komut ver dugmesine basin.';
 
+const COMMAND_HELP_TEXT =
+  'Kullanabileceginiz komutlar: Dinle, duraklat, sonraki, onceki, sonraki sayfa, onceki sayfa, besinci sayfaya git, kaldigim yeri isaretle, kaldigim yerden devam et, kitaplari listele, duyurular, geri don, yardim.';
+
 const recognitionConstructor =
   typeof window !== 'undefined'
     ? window.SpeechRecognition || window.webkitSpeechRecognition
@@ -60,8 +63,12 @@ export default function BlindMode() {
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
   const [selectedBook, setSelectedBook] = useState(MOCK_BOOKS[0]);
+  const [textChunks, setTextChunks] = useState([]);
+  const [currentChunkIndex, setCurrentChunkIndex] = useState(0);
+  const [bookmark, setBookmark] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [lastCommand, setLastCommand] = useState('');
   const [speechSupported] = useState(() => 'speechSynthesis' in window);
   const [recognitionSupported] = useState(Boolean(recognitionConstructor));
   const recognitionRef = useRef(null);
@@ -91,7 +98,7 @@ export default function BlindMode() {
 
   const departmentAnnouncements = useMemo(() => {
     if (!selectedDepartment) return [];
-    return SAMPLE_GTU_ANNOUNCEMENTS.filter(
+    return GTU_ANNOUNCEMENTS.filter(
       (announcement) => announcement.departmentId === selectedDepartment.id,
     );
   }, [selectedDepartment]);
@@ -146,7 +153,57 @@ export default function BlindMode() {
     return 'sure bilgisi yok';
   }
 
-  async function speakTextBook(book) {
+  function getBookmarkKey(bookId = selectedBook.id) {
+    return `echovoices:bookmark:${bookId}`;
+  }
+
+  function readBookmark(bookId = selectedBook.id) {
+    try {
+      const rawBookmark = localStorage.getItem(getBookmarkKey(bookId));
+      return rawBookmark ? JSON.parse(rawBookmark) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveBookmark(chunkIndex = currentChunkIndex) {
+    if (selectedBook.readingMode !== 'tts_text') {
+      giveFeedback('error');
+      speak('Kaldigin yeri isaretleme su an PDF metin kitaplari icin kullanilir.');
+      return;
+    }
+
+    const chunk = textChunks[chunkIndex];
+    if (!chunk) {
+      giveFeedback('error');
+      speak('Isaretlenecek sayfa bulunamadi.');
+      return;
+    }
+
+    const nextBookmark = {
+      bookId: selectedBook.id,
+      title: selectedBook.title,
+      chunkIndex,
+      pageStart: chunk.pageStart,
+      savedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(getBookmarkKey(selectedBook.id), JSON.stringify(nextBookmark));
+    setBookmark(nextBookmark);
+    giveFeedback('success');
+    speak(`${selectedBook.title} icin kaldiginiz yer sayfa ${chunk.pageStart} olarak isaretlendi.`);
+  }
+
+  async function ensureTextChunks(book = selectedBook) {
+    if (book.readingMode !== 'tts_text') return [];
+    if (book.id === selectedBook.id && textChunks.length) return textChunks;
+
+    const chunks = await getBookTextChunks(book.id, 40);
+    setTextChunks(chunks);
+    return chunks;
+  }
+
+  async function speakTextBook(book, startIndex = 0) {
     if (!speechSupported) {
       giveFeedback('error');
       speak('Bu tarayici metin seslendirmeyi desteklemiyor.');
@@ -154,7 +211,7 @@ export default function BlindMode() {
     }
 
     try {
-      const chunks = await getBookTextChunks(book.id, 8);
+      const chunks = await ensureTextChunks(book);
       if (!chunks.length) {
         giveFeedback('error');
         speak('Bu PDF kitabi icin okunacak metin bulunamadi.');
@@ -164,7 +221,8 @@ export default function BlindMode() {
       const token = playbackTokenRef.current + 1;
       playbackTokenRef.current = token;
       setIsPlaying(true);
-      speakChunk(chunks, 0, token, book.language || 'tr-TR');
+      setCurrentChunkIndex(startIndex);
+      speakChunk(chunks, startIndex, token, book.language || 'tr-TR');
     } catch {
       giveFeedback('error');
       speak('PDF metni okunurken Firestore hatasi olustu. Daha sonra tekrar deneyin.');
@@ -181,6 +239,7 @@ export default function BlindMode() {
     }
 
     const chunk = chunks[index];
+    setCurrentChunkIndex(index);
     setStatus(`${selectedBook.title} okunuyor. Parca ${index + 1}. Sayfa ${chunk.pageStart}.`);
     window.speechSynthesis.cancel();
 
@@ -221,10 +280,100 @@ export default function BlindMode() {
     setMode('library');
     setSelectedBook(book);
     setIsPlaying(false);
+    setTextChunks([]);
+    setCurrentChunkIndex(0);
+    setBookmark(readBookmark(book.id));
     playbackTokenRef.current += 1;
     window.speechSynthesis?.cancel();
     giveFeedback('success');
     speak(`${book.title} bulundu. ${book.chapterTitle || 'Tam metin'} secildi.`);
+  }
+
+  async function goToTextChunk(targetIndex, autoPlay = false) {
+    if (selectedBook.readingMode !== 'tts_text') {
+      giveFeedback('error');
+      speak('Sayfa gezinme sadece PDF metin kitaplari icin kullanilir.');
+      return;
+    }
+
+    try {
+      const chunks = await ensureTextChunks(selectedBook);
+      if (!chunks.length) {
+        giveFeedback('error');
+        speak('Bu kitapta metin parcasi bulunamadi.');
+        return;
+      }
+
+      const clampedIndex = Math.max(0, Math.min(targetIndex, chunks.length - 1));
+      const chunk = chunks[clampedIndex];
+      playbackTokenRef.current += 1;
+      window.speechSynthesis?.cancel();
+      setIsPlaying(false);
+      setCurrentChunkIndex(clampedIndex);
+      giveFeedback('success');
+
+      if (autoPlay) {
+        speakTextBook(selectedBook, clampedIndex);
+      } else {
+        speak(`Sayfa ${chunk.pageStart}. Okumak icin dinle komutunu verin.`);
+      }
+    } catch {
+      giveFeedback('error');
+      speak('Sayfa bilgisi alinamadi.');
+    }
+  }
+
+  async function goToPage(pageNumber, autoPlay = false) {
+    if (selectedBook.readingMode !== 'tts_text') {
+      giveFeedback('error');
+      speak('Sayfa numarasi komutu sadece PDF metin kitaplari icin kullanilir.');
+      return;
+    }
+
+    try {
+      const chunks = await ensureTextChunks(selectedBook);
+      const targetIndex = chunks.findIndex(
+        (chunk) => pageNumber >= chunk.pageStart && pageNumber <= chunk.pageEnd,
+      );
+
+      if (targetIndex === -1) {
+        giveFeedback('error');
+        speak(`${pageNumber}. sayfa bu kitapta bulunamadi.`);
+        return;
+      }
+
+      goToTextChunk(targetIndex, autoPlay);
+    } catch {
+      giveFeedback('error');
+      speak('Sayfa bilgisi alinamadi.');
+    }
+  }
+
+  function resumeFromBookmark() {
+    const savedBookmark = readBookmark(selectedBook.id);
+    if (!savedBookmark) {
+      giveFeedback('error');
+      speak('Bu kitap icin kayitli kaldiginiz yer yok.');
+      return;
+    }
+
+    setBookmark(savedBookmark);
+    goToTextChunk(savedBookmark.chunkIndex, true);
+  }
+
+  function selectBookByIndex(nextIndex) {
+    if (!books.length) {
+      giveFeedback('error');
+      speak('Listelenecek kitap bulunamadi.');
+      return;
+    }
+
+    const normalizedIndex = (nextIndex + books.length) % books.length;
+    selectBook(books[normalizedIndex]);
+  }
+
+  function getSelectedBookIndex() {
+    return Math.max(0, books.findIndex((book) => book.id === selectedBook.id));
   }
 
   function openAnnouncementsMode() {
@@ -235,7 +384,7 @@ export default function BlindMode() {
     playbackTokenRef.current += 1;
     window.speechSynthesis?.cancel();
     giveFeedback('success');
-    speak('GTU duyurulari modu acildi. Bolum secmek icin bolum adini soyleyin veya listeden dokunun.');
+    speak(`GTU duyurulari modu acildi. ${formatDepartmentTitles(GTU_DEPARTMENTS)} Bolum secmek icin 1, 2 gibi sirasini; ya da Bilgisayar, Matematik gibi bolum adini soyleyin.`);
   }
 
   function openLibraryMode() {
@@ -250,16 +399,71 @@ export default function BlindMode() {
     setSelectedDepartment(department);
     setSelectedAnnouncement(null);
     giveFeedback('success');
-    const count = SAMPLE_GTU_ANNOUNCEMENTS.filter(
+    const announcements = GTU_ANNOUNCEMENTS.filter(
       (announcement) => announcement.departmentId === department.id,
-    ).length;
-    speak(`${department.name} duyurulari acildi. ${count || 'Henuz'} duyuru bulundu.`);
+    );
+
+    if (!announcements.length) {
+      speak(`${department.name} duyurulari acildi. Henuz duyuru bulunamadi.`);
+      return;
+    }
+
+    speak(`${department.name} duyurulari acildi. ${announcements.length} duyuru bulundu. ${formatAnnouncementTitles(announcements)} Bir duyuruya girmek icin birinciyi ac, ikinciyi ac veya duyuru basligindan bir kelime soyleyin.`);
   }
 
-  function selectAnnouncement(announcement) {
+  function selectDepartmentByIndex(nextIndex) {
+    const normalizedIndex = (nextIndex + GTU_DEPARTMENTS.length) % GTU_DEPARTMENTS.length;
+    selectDepartment(GTU_DEPARTMENTS[normalizedIndex]);
+  }
+
+  function getSelectedDepartmentIndex() {
+    if (!selectedDepartment) return 0;
+    return Math.max(0, GTU_DEPARTMENTS.findIndex((department) => department.id === selectedDepartment.id));
+  }
+
+  function selectAnnouncement(announcement, readFullDetail = false) {
     setSelectedAnnouncement(announcement);
     giveFeedback('success');
-    speak(`${announcement.title}. ${announcement.summary}`);
+    const detailText = readFullDetail
+      ? announcement.bodyText || announcement.summary
+      : announcement.summary;
+    speak(`${announcement.title}. ${detailText}`);
+  }
+
+  function formatAnnouncementTitles(announcements, maxCount = 6) {
+    return announcements
+      .slice(0, maxCount)
+      .map((announcement, index) => `${index + 1}. ${announcement.title}`)
+      .join('. ');
+  }
+
+  function findAnnouncementByCommand(command) {
+    if (!selectedDepartment) return null;
+
+    const normalizedCommand = normalizeText(command);
+    return departmentAnnouncements.find((announcement) => {
+      const searchableText = normalizeText(`${announcement.title} ${announcement.summary || ''}`);
+      return searchableText.includes(normalizedCommand) || normalizedCommand.includes(normalizeText(announcement.title));
+    });
+  }
+
+  function selectAnnouncementByIndex(nextIndex) {
+    if (!departmentAnnouncements.length) {
+      giveFeedback('error');
+      speak('Bu bolum icin duyuru bulunamadi.');
+      return;
+    }
+
+    const normalizedIndex = (nextIndex + departmentAnnouncements.length) % departmentAnnouncements.length;
+    selectAnnouncement(departmentAnnouncements[normalizedIndex]);
+  }
+
+  function getSelectedAnnouncementIndex() {
+    if (!selectedAnnouncement) return 0;
+    return Math.max(
+      0,
+      departmentAnnouncements.findIndex((announcement) => announcement.id === selectedAnnouncement.id),
+    );
   }
 
   function findDepartmentByCommand(command) {
@@ -270,16 +474,262 @@ export default function BlindMode() {
     });
   }
 
-  function handleSearch(nextQuery = query) {
-    const trimmedQuery = nextQuery.trim();
-
-    if (!trimmedQuery) {
+  function listBooks() {
+    const firstBooks = visibleBooks.slice(0, 5);
+    if (!firstBooks.length) {
       giveFeedback('error');
-      speak('Arama yapmak icin kitap adi veya kategori soyleyin.');
+      speak('Listelenecek kitap bulunamadi.');
       return;
     }
 
+    const text = firstBooks
+      .map((book, index) => `${index + 1}. ${book.title}`)
+      .join('. ');
+    speak(`Kitaplar: ${text}. Acmak icin birinciyi ac, ikinciyi ac gibi komut verin.`);
+  }
+
+  function listDepartments() {
+    const firstDepartments = visibleDepartments.slice(0, 8);
+    speak(`Bolumler: ${formatDepartmentTitles(firstDepartments)} Bolum adi soyleyebilir, 1 diyebilir veya birinciyi ac diyebilirsiniz.`);
+  }
+
+  function formatDepartmentTitles(departments, maxCount = 8) {
+    return departments
+      .slice(0, maxCount)
+      .map((department, index) => `${index + 1}. ${department.name}`)
+      .join('. ');
+  }
+
+  function listAnnouncements() {
+    if (!selectedDepartment) {
+      listDepartments();
+      return;
+    }
+
+    if (!departmentAnnouncements.length) {
+      giveFeedback('error');
+      speak(`${selectedDepartment.name} icin duyuru bulunamadi.`);
+      return;
+    }
+
+    const text = departmentAnnouncements
+      .map((announcement, index) => `${index + 1}. ${announcement.title}`)
+      .join('. ');
+    speak(`${selectedDepartment.name} duyurulari: ${text}. Bir duyurunun detayini okumak icin numarasini veya basligindan bir kelime soyleyin.`);
+  }
+
+  function readSelectedAnnouncementDetail() {
+    if (!selectedAnnouncement) {
+      listAnnouncements();
+      return;
+    }
+
+    selectAnnouncement(selectedAnnouncement, true);
+  }
+
+  function handleOrdinalCommand(normalizedCommand) {
+    const ordinalMap = [
+      ['birinci', '1', 'ilk'],
+      ['ikinci', '2'],
+      ['ucuncu', 'üçüncü', '3'],
+      ['dorduncu', 'dördüncü', '4'],
+      ['besinci', 'beşinci', '5'],
+    ];
+
+    const ordinalIndex = ordinalMap.findIndex((words) =>
+      words.some((word) => normalizedCommand.includes(normalizeText(word))),
+    );
+
+    if (ordinalIndex === -1 || !/(ac|aç|sec|seç|oku|git)/.test(normalizedCommand)) {
+      return false;
+    }
+
+    if (mode === 'announcements' && selectedDepartment) {
+      selectAnnouncementByIndex(ordinalIndex);
+      return true;
+    }
+
+    if (mode === 'announcements') {
+      selectDepartmentByIndex(ordinalIndex);
+      return true;
+    }
+
+    const targetBook = visibleBooks[ordinalIndex];
+    if (targetBook) {
+      selectBook(targetBook);
+      return true;
+    }
+
+    giveFeedback('error');
+    speak('Bu sirada bir secenek bulunamadi.');
+    return true;
+  }
+
+  function handleCommand(rawCommand = query) {
+    const trimmedQuery = rawCommand.trim();
+
+    if (!trimmedQuery) {
+      giveFeedback('error');
+      speak('Komut vermek icin kitap adi, duyuru, dinle veya yardim yazabilirsiniz.');
+      return;
+    }
+
+    setLastCommand(trimmedQuery);
     const normalizedQuery = normalizeText(trimmedQuery);
+
+    const numericOnlyMatch = normalizedQuery.match(/^(\d{1,2})$/);
+    if (numericOnlyMatch) {
+      const targetIndex = Number(numericOnlyMatch[1]) - 1;
+      if (mode === 'announcements' && selectedDepartment) {
+        selectAnnouncementByIndex(targetIndex);
+        return;
+      }
+
+      if (mode === 'announcements') {
+        selectDepartmentByIndex(targetIndex);
+        return;
+      }
+
+      const targetBook = visibleBooks[targetIndex];
+      if (targetBook) {
+        selectBook(targetBook);
+        return;
+      }
+    }
+
+    if (normalizedQuery.includes('yardim') || normalizedQuery.includes('yardım')) {
+      speak(COMMAND_HELP_TEXT);
+      return;
+    }
+
+    if (normalizedQuery.includes('kaldigim yerden') || normalizedQuery.includes('kaldığım yerden') || normalizedQuery.includes('devam et')) {
+      resumeFromBookmark();
+      return;
+    }
+
+    if (normalizedQuery.includes('isaretle') || normalizedQuery.includes('işaretle') || normalizedQuery.includes('yerimi kaydet')) {
+      saveBookmark();
+      return;
+    }
+
+    const pageMatch = normalizedQuery.match(/(\d+)\s*(sayfa|sayfaya|sayfadan)/);
+    if (pageMatch) {
+      goToPage(Number(pageMatch[1]), normalizedQuery.includes('oku') || normalizedQuery.includes('dinle'));
+      return;
+    }
+
+    if (normalizedQuery.includes('ana menu') || normalizedQuery.includes('ana menü')) {
+      openLibraryMode();
+      return;
+    }
+
+    if (normalizedQuery.includes('geri')) {
+      if (mode === 'announcements' && selectedDepartment) {
+        setSelectedDepartment(null);
+        setSelectedAnnouncement(null);
+        giveFeedback('success');
+        speak('Bolum listesine donuldu.');
+        return;
+      }
+
+      if (mode === 'announcements') {
+        openLibraryMode();
+        return;
+      }
+
+      speak('Kitaplik modundasiniz.');
+      return;
+    }
+
+    if (
+      mode === 'announcements'
+      && selectedAnnouncement
+      && (normalizedQuery.includes('detay') || normalizedQuery.includes('tamamini') || normalizedQuery.includes('tamamÄ±nÄ±'))
+    ) {
+      readSelectedAnnouncementDetail();
+      return;
+    }
+
+    if (normalizedQuery.includes('dinle') || normalizedQuery.includes('oku') || normalizedQuery.includes('baslat')) {
+      if (mode === 'announcements' && selectedAnnouncement) {
+        readSelectedAnnouncementDetail();
+        return;
+      }
+
+      if (mode === 'announcements') {
+        listAnnouncements();
+        return;
+      }
+
+      if (!isPlaying) togglePlayback();
+      else speak(`${selectedBook.title} zaten oynatiliyor.`);
+      return;
+    }
+
+    if (normalizedQuery.includes('dur') || normalizedQuery.includes('duraklat') || normalizedQuery.includes('sus')) {
+      if (isPlaying) {
+        togglePlayback();
+        return;
+      }
+
+      window.speechSynthesis?.cancel();
+      setIsPlaying(false);
+      speak('Ses durduruldu.');
+      return;
+    }
+
+    if (normalizedQuery.includes('liste')) {
+      if (mode === 'announcements') {
+        listAnnouncements();
+      } else {
+        listBooks();
+      }
+      return;
+    }
+
+    if (handleOrdinalCommand(normalizedQuery)) {
+      return;
+    }
+
+    if (normalizedQuery.includes('sonraki') || normalizedQuery.includes('ileri')) {
+      if (normalizedQuery.includes('sayfa')) {
+        goToTextChunk(currentChunkIndex + 1);
+        return;
+      }
+
+      if (mode === 'announcements' && selectedDepartment) {
+        selectAnnouncementByIndex(getSelectedAnnouncementIndex() + 1);
+        return;
+      }
+
+      if (mode === 'announcements') {
+        selectDepartmentByIndex(getSelectedDepartmentIndex() + 1);
+        return;
+      }
+
+      selectBookByIndex(getSelectedBookIndex() + 1);
+      return;
+    }
+
+    if (normalizedQuery.includes('onceki') || normalizedQuery.includes('önceki') || normalizedQuery.includes('geri kitap')) {
+      if (normalizedQuery.includes('sayfa')) {
+        goToTextChunk(currentChunkIndex - 1);
+        return;
+      }
+
+      if (mode === 'announcements' && selectedDepartment) {
+        selectAnnouncementByIndex(getSelectedAnnouncementIndex() - 1);
+        return;
+      }
+
+      if (mode === 'announcements') {
+        selectDepartmentByIndex(getSelectedDepartmentIndex() - 1);
+        return;
+      }
+
+      selectBookByIndex(getSelectedBookIndex() - 1);
+      return;
+    }
 
     if (normalizedQuery.includes('duyuru')) {
       openAnnouncementsMode();
@@ -299,6 +749,14 @@ export default function BlindMode() {
     }
 
     if (mode === 'announcements') {
+      if (selectedDepartment) {
+        const requestedAnnouncement = findAnnouncementByCommand(trimmedQuery);
+        if (requestedAnnouncement) {
+          selectAnnouncement(requestedAnnouncement);
+          return;
+        }
+      }
+
       giveFeedback('error');
       speak(`${trimmedQuery} icin bolum veya duyuru bulunamadi.`);
       return;
@@ -333,7 +791,7 @@ export default function BlindMode() {
     }
 
     if (selectedBook.readingMode === 'tts_text') {
-      speakTextBook(selectedBook);
+      speakTextBook(selectedBook, currentChunkIndex);
       return;
     }
 
@@ -376,7 +834,7 @@ export default function BlindMode() {
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
       setQuery(transcript);
-      handleSearch(transcript);
+      handleCommand(transcript);
     };
 
     recognition.start();
@@ -392,6 +850,12 @@ export default function BlindMode() {
 
         setBooks(publishedBooks);
         setSelectedBook(publishedBooks[0]);
+        try {
+          const rawBookmark = localStorage.getItem(`echovoices:bookmark:${publishedBooks[0].id}`);
+          setBookmark(rawBookmark ? JSON.parse(rawBookmark) : null);
+        } catch {
+          setBookmark(null);
+        }
         setLibrarySource('Firestore kutuphanesi');
       } catch {
         if (!cancelled) {
@@ -513,14 +977,31 @@ export default function BlindMode() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Enter') handleSearch();
+              if (event.key === 'Enter') handleCommand();
             }}
-            placeholder="Ornek: Nutuk, Ders Notu, GTU Duyurusu"
+            placeholder="Ornek: dinle, sonraki, duyurular, Nutuk"
           />
-          <button type="button" onClick={() => handleSearch()}>
-            Ara
+          <button type="button" onClick={() => handleCommand()}>
+            Komutu Calistir
           </button>
         </div>
+      </section>
+
+      <section className="blind-command-help" aria-label="Komut yardimi">
+        <strong>Komutlar</strong>
+        <span>Dinle</span>
+        <span>Duraklat</span>
+        <span>Sonraki</span>
+        <span>Onceki</span>
+        <span>Listele</span>
+        <span>Sonraki sayfa</span>
+        <span>5. sayfaya git</span>
+        <span>Kaldigim yeri isaretle</span>
+        <span>Kaldigim yerden devam et</span>
+        <span>Duyurular</span>
+        <span>Geri don</span>
+        <span>Yardim</span>
+        {lastCommand && <em>Son komut: {lastCommand}</em>}
       </section>
 
       {mode === 'library' && (
@@ -531,6 +1012,12 @@ export default function BlindMode() {
             <p>{selectedBook.chapterTitle || (selectedBook.readingMode === 'tts_text' ? 'PDF metni' : 'Tam Metin')}</p>
             <p>{selectedBook.author || 'Bilinmeyen yazar'} - {getBookDuration(selectedBook)}</p>
             <p>{selectedBook.readingMode === 'tts_text' ? 'PDF metni Web Speech API ile okunacak' : 'Ses dosyası modu'}</p>
+            {selectedBook.readingMode === 'tts_text' && (
+              <p>
+                Geçerli sayfa: {textChunks[currentChunkIndex]?.pageStart || 'hazır değil'}
+                {bookmark ? ` - İşaretli yer: sayfa ${bookmark.pageStart}` : ''}
+              </p>
+            )}
           </section>
 
           <section className="blind-library-header" aria-label="Kutuphane kaynagi">

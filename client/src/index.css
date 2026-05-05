@@ -865,6 +865,37 @@ body {
   font-weight: 900;
 }
 
+.blind-command-help {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: #ffffff;
+}
+
+.blind-command-help strong {
+  color: #fff04d;
+  font-size: 1rem;
+  margin-right: 4px;
+}
+
+.blind-command-help span,
+.blind-command-help em {
+  border: 2px solid #3b4638;
+  border-radius: 999px;
+  background: #101510;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.blind-command-help em {
+  border-color: #fff04d;
+  color: #fff9b8;
+}
+
 .blind-now-playing {
   border: 3px solid #3b4638;
   border-radius: 8px;
