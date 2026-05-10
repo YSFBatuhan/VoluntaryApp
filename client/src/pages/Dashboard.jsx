@@ -1,72 +1,163 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getBooksByOwner } from '../services/libraryService';
+
 export default function Dashboard() {
+  const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate();
+  const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadDashboard() {
+      if (!currentUser) return;
+      setLoading(true);
+      try {
+        const ownBooks = await getBooksByOwner(currentUser.uid);
+        if (alive) setBooks(ownBooks);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    }
+
+    loadDashboard();
+    return () => {
+      alive = false;
+    };
+  }, [currentUser]);
+
+  const stats = useMemo(() => {
+    const published = books.filter(book => book.status === 'published').length;
+    const pending = books.filter(book => book.status === 'pending').length;
+    const needsFix = books.filter(book => book.status === 'needs_fix').length;
+    const rejected = books.filter(book => book.status === 'rejected').length;
+    const minutes = books.reduce((sum, book) => sum + (book.estimatedReadingMinutes || Math.round((book.totalDurationSec || 0) / 60)), 0);
+
+    return { published, pending, needsFix, rejected, minutes, total: books.length };
+  }, [books]);
+
+  const recentBooks = books.slice(0, 4);
+
   return (
     <div className="dashboard-page">
-      <div className="page-header">
-        <h1>Impact & Statistics</h1>
-        <p className="subtitle">
-          Your voice has traveled thousands of miles and touched hundreds of lives.<br/>
-          Explore the reach of your stories.
-        </p>
+      <section className="dashboard-hero-panel">
+        <div>
+          <span className="dashboard-kicker">Ana sayfa</span>
+          <h1>Merhaba, {userProfile?.name || currentUser?.displayName || 'gönüllü'}.</h1>
+          <p>Bugünkü ana akış PDF/TTS: seçilebilir metinli PDF ekle, admin onaylasın, Blind Mode ücretsiz seslendirsin.</p>
+        </div>
+        <div className="dashboard-hero-actions">
+          <button className="btn-sage" type="button" onClick={() => navigate('/books')}>PDF Ekle</button>
+          <button className="btn-outline" type="button" onClick={() => navigate('/studio')}>Kayıt Stüdyosu</button>
+        </div>
+      </section>
+
+      <div className="metric-grid">
+        <MetricCard label="Toplam İçerik" value={loading ? '...' : stats.total} hint="Yüklediğin PDF ve bekleyen içerikler" />
+        <MetricCard label="Yayında" value={loading ? '...' : stats.published} hint="Dinleyici tarafında görünür" />
+        <MetricCard label="Kontrol Bekliyor" value={loading ? '...' : stats.pending} hint="Admin inceleme kuyruğunda" />
+        <MetricCard label="Düzeltme" value={loading ? '...' : stats.needsFix} hint="Senden işlem bekliyor" />
       </div>
 
-      <div className="dashboard-grid">
-        {/* Soldaki Grafik Kartı */}
-        <div className="card stat-card wide-card">
+      <div className="dashboard-grid refined">
+        <section className="card contribution-card">
           <div className="card-header">
-            <h3>Listening Trends</h3>
-            <span className="badge-light">Last 30 Days</span>
+            <h3>İş Akışı</h3>
+            <span className="badge-light">Güncel durum</span>
           </div>
-          <p className="card-desc">Total listen time across all narrated works</p>
-          
-          {/* STITCH Grafiği Benzetimi */}
-          <div className="chart-placeholder">
-            <div className="bar" style={{height: '35%'}}></div>
-            <div className="bar" style={{height: '50%'}}></div>
-            <div className="bar" style={{height: '40%'}}></div>
-            <div className="bar" style={{height: '75%'}}></div>
-            <div className="bar" style={{height: '60%'}}></div>
-            <div className="bar" style={{height: '100%'}}></div>
-            <div className="bar" style={{height: '85%'}}></div>
+          <div className="pipeline-list">
+            <PipelineItem label="Düzeltme istendi" value={stats.needsFix} tone="needs-fix" />
+            <PipelineItem label="Onay bekliyor" value={stats.pending} tone="pending" />
+            <PipelineItem label="Yayında" value={stats.published} tone="published" />
+            <PipelineItem label="Reddedildi" value={stats.rejected} tone="rejected" />
           </div>
-          <div className="chart-labels">
-            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-          </div>
-        </div>
+        </section>
 
-        {/* Sağdaki Duygu Analizi Kartı */}
-        <div className="card stat-card">
-          <div className="card-header">
-            <h3>Listener Sentiment</h3>
-          </div>
-          <p className="card-desc">Emotional resonance of your voice</p>
-          
-          <div className="sentiment-list">
-            <div className="sentiment-item">
-              <div className="icon-circle" style={{background: '#F9E8EE'}}>🤍</div>
-              <div className="progress-container">
-                <div className="progress-info"><span>Comforting</span><span>88%</span></div>
-                <div className="progress-bar"><div className="fill" style={{width: '88%', background: '#614853'}}></div></div>
-              </div>
-            </div>
-
-            <div className="sentiment-item">
-              <div className="icon-circle" style={{background: '#E6F0E6'}}>🧠</div>
-              <div className="progress-container">
-                <div className="progress-info"><span>Clear & Concise</span><span>94%</span></div>
-                <div className="progress-bar"><div className="fill" style={{width: '94%', background: '#3D4F3D'}}></div></div>
-              </div>
-            </div>
-
-            <div className="sentiment-item">
-              <div className="icon-circle" style={{background: '#EAF3D9'}}>✨</div>
-              <div className="progress-container">
-                <div className="progress-info"><span>Inspiring</span><span>72%</span></div>
-                <div className="progress-bar"><div className="fill" style={{width: '72%', background: '#6B7A55'}}></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <section className="card next-action-card">
+          <h3>Sıradaki Adım</h3>
+          <p>{getNextActionText(stats)}</p>
+          <button className="btn-sage" type="button" onClick={() => navigate(stats.needsFix ? '/books' : '/books')}>
+            {stats.needsFix ? 'Düzeltmeleri Aç' : 'Yeni İçerik Yükle'}
+          </button>
+        </section>
       </div>
+
+      <section className="card recent-work-card">
+        <div className="card-header">
+          <h3>Son Yüklemeler</h3>
+          <button className="btn-outline" type="button" onClick={() => navigate('/books')}>Kitap Yönetimi</button>
+        </div>
+        {loading ? (
+          <p className="card-desc">Yüklemeler alınıyor...</p>
+        ) : recentBooks.length ? (
+          <div className="recent-work-list">
+            {recentBooks.map(book => (
+              <article key={book.id} className="recent-work-row">
+                <div>
+                  <strong>{book.title}</strong>
+                  <span>{book.category || 'Kategori yok'} / {book.sourceType === 'pdf' ? 'PDF' : 'Ses kaydı'}</span>
+                </div>
+                <em className={`status-pill ${getStatusTone(book.status)}`}>{getStatusLabel(book.status)}</em>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-dashboard-state">
+            <strong>Henüz içerik yüklemedin.</strong>
+            <p>İlk adım için Kitap Yönetimi sayfasından seçilebilir metin içeren bir PDF ekle.</p>
+          </div>
+        )}
+      </section>
     </div>
   );
+}
+
+function MetricCard({ label, value, hint }) {
+  return (
+    <section className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <p>{hint}</p>
+    </section>
+  );
+}
+
+function PipelineItem({ label, value, tone }) {
+  return (
+    <div className="pipeline-item">
+      <span className={`pipeline-dot ${tone}`}></span>
+      <strong>{label}</strong>
+      <em>{value}</em>
+    </div>
+  );
+}
+
+function getNextActionText(stats) {
+  if (stats.needsFix) return 'Önce adminin düzeltme istediği içerikleri toparla. Bu işler tekrar incelemeye gönderilmeden yayına çıkmaz.';
+  if (stats.pending) return 'İçeriklerin kontrolde. Bu sırada yeni bir seçilebilir metinli PDF hazırlayabilirsin.';
+  if (!stats.total) return 'Başlamak için en hızlı yol: seçilebilir metin içeren bir PDF yüklemek.';
+  return 'Akış temiz. Yeni bir içerik ekleyerek kütüphaneyi büyütebilirsin.';
+}
+
+function getStatusLabel(status) {
+  const labels = {
+    pending: 'Onay bekliyor',
+    published: 'Yayında',
+    needs_fix: 'Düzeltme istendi',
+    rejected: 'Reddedildi',
+  };
+  return labels[status] || 'Durum bilinmiyor';
+}
+
+function getStatusTone(status) {
+  const tones = {
+    pending: 'pending',
+    published: 'published',
+    needs_fix: 'needs-fix',
+    rejected: 'rejected',
+  };
+  return tones[status] || 'neutral';
 }

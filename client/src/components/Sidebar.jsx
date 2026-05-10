@@ -2,10 +2,17 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const navItems = [
-  { path: '/studio', icon: '🎙️', label: 'Recording Studio' },
-  { path: '/books', icon: '📚', label: 'Book Management' },
-  { path: '/dashboard', icon: '📈', label: 'Impact Stats' },
-  { path: '/community', icon: '👥', label: 'Community' },
+  { path: '/dashboard', icon: 'AN', label: 'Ana Sayfa', helper: 'Genel durum' },
+  { path: '/books', icon: 'KY', label: 'Kitap Yönetimi', helper: 'Yükleme ve düzeltme' },
+  { path: '/studio', icon: 'KS', label: 'Kayıt Stüdyosu', helper: 'Ses kaydı' },
+  { path: '/statistics', icon: 'IS', label: 'İstatistikler', helper: 'Katkı etkisi' },
+  { path: '/community', icon: 'TP', label: 'Topluluk', helper: 'Duyurular ve ekip' },
+  { path: '/profile', icon: 'PR', label: 'Profil', helper: 'Hesap ve tercihler' },
+];
+
+const adminNavItems = [
+  { path: '/admin/qc', icon: 'QC', label: 'Kalite Kontrol', helper: 'Admin paneli' },
+  { path: '/admin/tts', icon: 'TS', label: 'TTS Ayarları', helper: 'Ses motoru' },
 ];
 
 export default function Sidebar() {
@@ -19,7 +26,10 @@ export default function Sidebar() {
 
   const initials = userProfile?.name
     ? userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-    : 'VN';
+    : 'GV';
+  const visibleNavItems = userProfile?.role === 'admin'
+    ? [...navItems, ...adminNavItems]
+    : navItems;
 
   return (
     <aside className="sidebar">
@@ -27,20 +37,23 @@ export default function Sidebar() {
         <div className="avatar">{initials}</div>
         <div>
           <h4>{userProfile?.name || 'Gönüllü'}</h4>
-          <span className="badge">{userProfile?.level || 'Sage Level'}</span>
+          <span className="badge">{getRoleLabel(userProfile?.role)} · {userProfile?.level || 'Başlangıç'}</span>
         </div>
       </div>
 
       <nav className="sidebar-nav">
         <ul>
-          {navItems.map(item => (
+          {visibleNavItems.map(item => (
             <li key={item.path}>
               <NavLink
                 to={item.path}
                 className={({ isActive }) => isActive ? 'active' : ''}
-                style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '12px' }}
               >
-                <span>{item.icon}</span> {item.label}
+                <span className="nav-icon">{item.icon}</span>
+                <span>
+                  <strong>{item.label}</strong>
+                  <small>{item.helper}</small>
+                </span>
               </NavLink>
             </li>
           ))}
@@ -48,18 +61,24 @@ export default function Sidebar() {
       </nav>
 
       <div className="sidebar-bottom">
-        <button className="btn-sage btn-full" onClick={() => navigate('/studio')}>
-          <span style={{ marginRight: '8px', fontSize: '1.2rem' }}>+</span> Start Recording
+        <button className="btn-sage btn-full" onClick={() => navigate('/books')}>
+          Yeni İçerik Yükle
         </button>
         <ul className="sidebar-links">
-          <li onClick={() => navigate('/')}>
-            <span>❓</span> Help Center
+          <li onClick={() => navigate('/community')}>
+            <span>Yardım</span>
           </li>
           <li onClick={handleLogout}>
-            <span>🚪</span> Logout
+            <span>Çıkış Yap</span>
           </li>
         </ul>
       </div>
     </aside>
   );
+}
+
+function getRoleLabel(role) {
+  if (role === 'admin') return 'Admin';
+  if (role === 'blind_user') return 'Dinleyici';
+  return 'Gönüllü';
 }

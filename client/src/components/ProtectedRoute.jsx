@@ -2,8 +2,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // Giriş yapılmamışsa /login'e yönlendir
-export default function ProtectedRoute({ children }) {
-  const { currentUser, loading } = useAuth();
+export default function ProtectedRoute({ children, requiredRole }) {
+  const { currentUser, userProfile, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,5 +13,10 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  return currentUser ? children : <Navigate to="/login" replace />;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (requiredRole && userProfile?.role !== requiredRole) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return children;
 }

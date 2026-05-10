@@ -15,7 +15,7 @@ GTU EchoVoices once tamamen calisan, dusuk trafikte ucretsiz kalabilen ve gerekt
 | Veritabani | Firestore Spark | Tek ucretsiz database, kontrollu read/write, realtime listener minimum. |
 | Sesli okuma | Web Speech API | Tarayicinin SpeechSynthesis destegi ana TTS motoru olacak. |
 | Sesli komut | Web Speech API | SpeechRecognition desteklenirse kullanilacak, desteklenmezse buyuk buton/yazili arama fallback olacak. |
-| Ses depolama | Cloudinary Free veya gecici mock | Dosya boyutu/sure siniri olmadan yukleme acilmayacak. |
+| Ses depolama | Beklemede | Firebase Storage Blaze plan istedigi icin MP3/ses upload MVP ana akisi disina alindi. |
 | PDF okuma | Browser-side PDF text extraction | Sunucu/OCR/AI kullanmadan secilebilir metinli PDF'ler islenecek. |
 
 ## Bilerek Kacinilacaklar
@@ -26,7 +26,7 @@ GTU EchoVoices once tamamen calisan, dusuk trafikte ucretsiz kalabilen ve gerekt
 - Otomatik video/ses donusturme, arka plan isleme veya AI analizleri MVP kapsaminda olmayacak.
 - OCR ile taranmis PDF okuma MVP kapsaminda olmayacak.
 - PDF'leri otomatik MP3'e cevirip depolama MVP kapsaminda olmayacak.
-- Buyuk ses dosyalari kontrolsuz yuklenmeyecek.
+- Buyuk ses dosyalari kontrolsuz yuklenmeyecek; depolama karari verilene kadar canli ses upload kapali kalacak.
 - Firestore'da surekli acik realtime listener sadece gercek ihtiyac varsa kullanilacak.
 
 ## Kota Koruma Kurallari
@@ -35,10 +35,10 @@ GTU EchoVoices once tamamen calisan, dusuk trafikte ucretsiz kalabilen ve gerekt
 2. Firestore baglandiginda kitap listeleri sayfali cekilecek.
 3. Arama icin `titleLower`, `authorLower` ve `keywords` gibi hazir alanlar tutulacak.
 4. Sik kullanilan statik metinler uygulama icinde tutulacak; TTS icin dis API cagrisi yapilmayacak.
-5. Ses yuklemede dosya boyutu, sure ve format kontrolu frontend'de zorunlu olacak.
+5. Ses yukleme ozelligi depolama karari verilene kadar kontrollu bekleme mesajina baglanacak.
 6. PDF yuklemede dosya boyutu limiti baslangicta 20 MB olacak.
 7. PDF metni Firestore'a chunk'lar halinde yazilacak, tum kitap tek dokumanda tutulmayacak.
-8. Beta oncesi Firebase ve Cloudinary dashboard'larindan kota takibi yapilacak.
+8. Beta oncesi Firebase Storage, Cloudinary veya alternatif depolama secenekleri maliyet/kota olarak tekrar karsilastirilacak.
 
 ## Faz 0 Cikis Kriteri
 

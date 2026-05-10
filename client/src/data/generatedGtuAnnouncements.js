@@ -4,7 +4,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-30527",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Doktora Sonrası Araştırmacı Çağrısı",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/30527/display.aspx",
@@ -18,7 +18,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-30438",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Bilimle Tanış: Lise Öğrencileri Araştırma Staj Programı 2026",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/30438/display.aspx",
@@ -32,7 +32,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-30422",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Girişim Yolculuğu BiGG Masters ile Başlıyor!",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/30422/display.aspx",
@@ -46,7 +46,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-30406",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "2026 Yılı Bilimsel Araştırma Proje Çağrısı",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/30406/display.aspx",
@@ -60,7 +60,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-30363",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "GTÜ Milli Teknoloji Atölyesi Açıldı",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/30363/display.aspx",
@@ -74,7 +74,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28239",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "2025-2026 Bahar Dönemi Lisansüstü Kimlik Kartları Hakkında",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28239/display.aspx",
@@ -88,7 +88,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28219",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "GTÜ – Kocaeli Üniversitesi İş Birliği Protokolü Kapsamında Ortak Proje Çağrısı",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28219/display.aspx",
@@ -102,7 +102,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28120",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Sözleşmeli Personel Alımı - Atanmaya Hak Kazanan Asil/Yedek Aday Listesi",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28120/display.aspx",
@@ -116,7 +116,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28116",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Öğretim Elemanı Alım İlanı Sonuçları (28.12.2025 Tarihli İlan)",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28116/display.aspx",
@@ -130,7 +130,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28077",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Öğretim Elemanı Atamalarına İlişkin İstenilen Belgeler (26.12.2025 Tarihli İlan)",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28077/display.aspx",
@@ -144,7 +144,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28075",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "Öğretim Elemanı Alım İlanı Sonuçları (26.12.2025 Tarihli İlan)",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28075/display.aspx",
@@ -158,7 +158,7 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
   {
     "id": "gtu-general-28028",
     "departmentId": "gtu-genel",
-    "departmentName": "GTU Genel Duyurular",
+    "departmentName": "GTÜ Genel Duyurular",
     "title": "2025 Yılı Akademik Teşvik Ödeneği Nihai Sonuçları",
     "dateText": "GTU",
     "detailUrl": "https://www.gtu.edu.tr/tr/icerik/9/28028/display.aspx",
@@ -194,8 +194,8 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "sourceHash": "bilgisayar-nternship-nfo-session-announcement-1",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Internship Info Session Announcement. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Internship Info Session Announcement. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Internship Info Session Announcement. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Internship Info Session Announcement. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
     "id": "gtu-bilgisayar-bilgisayar-2025-2026-bahar-donemi-final-s-nav-program-lisans-lisansustu-v5-2",
@@ -236,8 +236,8 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "sourceHash": "bilgisayar-fulbright-yuksek-lisans-ve-doktora-burslar-4",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Fulbright Yüksek Lisans ve Doktora Bursları. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Fulbright Yüksek Lisans ve Doktora Bursları. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Fulbright Yüksek Lisans ve Doktora Bursları. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Fulbright Yüksek Lisans ve Doktora Bursları. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
     "id": "gtu-elektronik-elektronik-s-nav-takvimi-hk-muh251-0",
@@ -250,8 +250,8 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "sourceHash": "elektronik-s-nav-takvimi-hk-muh251-0",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Sınav takvimi hk. - MUH251. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Sınav takvimi hk. - MUH251. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Sınav takvimi hk. - MUH251. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Sınav takvimi hk. - MUH251. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
     "id": "gtu-elektronik-elektronik-vize-program-1",
@@ -278,8 +278,8 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "sourceHash": "elektronik-s-nav-tarihleri-2",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Sınav Tarihleri. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Sınav Tarihleri. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Sınav Tarihleri. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Sınav Tarihleri. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
     "id": "gtu-elektronik-elektronik-mth207-dersi-duyurusu-3",
@@ -292,8 +292,8 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "sourceHash": "elektronik-mth207-dersi-duyurusu-3",
     "language": "tr-TR",
     "status": "published",
-    "summary": "MTH207 Dersi Duyurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "MTH207 Dersi Duyurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "MTH207 Dersi Duyurusu. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "MTH207 Dersi Duyurusu. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
     "id": "gtu-elektronik-elektronik-elm367-tek-ders-ve-ek-s-nav-elm365-tek-ders-4",
@@ -306,148 +306,148 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "sourceHash": "elektronik-elm367-tek-ders-ve-ek-s-nav-elm365-tek-ders-4",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Elm367 (Tek ders ve Ek sınav) Elm365 (Tek ders). Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Elm367 (Tek ders ve Ek sınav) Elm365 (Tek ders). Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Elm367 (Tek ders ve Ek sınav) Elm365 (Tek ders). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Elm367 (Tek ders ve Ek sınav) Elm365 (Tek ders). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-makine-makine-saykal-elektronik-a-s-staj-ilan-0",
+    "id": "gtu-makine-makine-mazeret-program-2025-2026-bahar-0",
+    "departmentId": "makine",
+    "departmentName": "Makine Muhendisligi",
+    "title": "Mazeret Programı 2025 - 2026 Bahar",
+    "dateText": "09 Mayıs",
+    "detailUrl": "https://www.gtu.edu.tr/fileman/Files/UserFiles/makine_muhendisligi_bolumu/Yeni Mazeret Program Düzen.pdf",
+    "sourceUrl": "https://www.gtu.edu.tr/fileman/Files/UserFiles/makine_muhendisligi_bolumu/Yeni Mazeret Program Düzen.pdf",
+    "sourceHash": "makine-mazeret-program-2025-2026-bahar-0",
+    "language": "tr-TR",
+    "status": "published",
+    "summary": "Sayfa 1. ME332 / Control Systems Theory Dr.Öğretim Üyesi SAEED LOTFAN ME342 / Heat Transfer Doç.Dr. GAMZE GEDİZ İLİŞ INF112 / Programming-II Dr.Öğretim Üyesi MUHAMMED ALİ KEÇEBAŞ ME212 / Strength of Materials Prof.Dr. MEHMET ALİ ARSLAN ME414 / Polymer Material...",
+    "bodyText": "Sayfa 1. ME332 / Control Systems Theory Dr.Öğretim Üyesi SAEED LOTFAN ME342 / Heat Transfer Doç.Dr. GAMZE GEDİZ İLİŞ INF112 / Programming-II Dr.Öğretim Üyesi MUHAMMED ALİ KEÇEBAŞ ME212 / Strength of Materials Prof.Dr. MEHMET ALİ ARSLAN ME414 / Polymer Materials and Polymer Processing Techniques Doç. Dr. Emel KURAM ME234 / Electrical and Electronic Systems Dr.Öğretim Üyesi GÖRKEM ANIL AL ME232 / Dynamics Öğr.Gör.Dr. ABDURRAHMAN İŞBİTİRİCİ ME324 / Design of Machine Elements II Dr.Öğretim Üyesi BEHZAD HASHEMİ SOUDMAND ME304 / Measurement and Instrumentation Öğr.Gör.Dr. ABDURRAHMAN İŞBİTİRİCİ ME242 / Applications of Thermodynamics Prof.Dr. ALPER ŞEVKİ KONUKMAN ME407 / Computational Applications in Mechanical Engineering Dr. Öğretim Üyesi Ali Eken MAY 20, WEDNESDAY, 14:00-17:00 (D-11) MAY 20, WEDNESDAY, 10:00-13:00 (D-4) MAY 18, MONDAY, 14:00-17:00 (D-12) MAY 18, MONDAY, 10:00-13:00 (D-12)"
+  },
+  {
+    "id": "gtu-makine-makine-saykal-elektronik-a-s-staj-ilan-1",
     "departmentId": "makine",
     "departmentName": "Makine Muhendisligi",
     "title": "SAYKAL Elektronik A.Ş.- Staj İlanı",
     "dateText": "03 Mayıs",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
-    "sourceHash": "makine-saykal-elektronik-a-s-staj-ilan-0",
+    "sourceHash": "makine-saykal-elektronik-a-s-staj-ilan-1",
     "language": "tr-TR",
     "status": "published",
-    "summary": "SAYKAL Elektronik A.Ş.- Staj İlanı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "SAYKAL Elektronik A.Ş.- Staj İlanı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "SAYKAL Elektronik A.Ş.- Staj İlanı. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "SAYKAL Elektronik A.Ş.- Staj İlanı. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-makine-makine-guney-kore-staj-basvurusu-1",
+    "id": "gtu-makine-makine-guney-kore-staj-basvurusu-2",
     "departmentId": "makine",
     "departmentName": "Makine Muhendisligi",
     "title": "Güney Kore Staj Başvurusu",
     "dateText": "16 Nisan",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
-    "sourceHash": "makine-guney-kore-staj-basvurusu-1",
+    "sourceHash": "makine-guney-kore-staj-basvurusu-2",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Güney Kore Staj Başvurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Güney Kore Staj Başvurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Güney Kore Staj Başvurusu. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Güney Kore Staj Başvurusu. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-makine-makine-is-ilanlar-13-nisan-2026-2",
+    "id": "gtu-makine-makine-is-ilanlar-13-nisan-2026-3",
     "departmentId": "makine",
     "departmentName": "Makine Muhendisligi",
     "title": "İş İlanları - 13 Nisan 2026",
     "dateText": "13 Nisan",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
-    "sourceHash": "makine-is-ilanlar-13-nisan-2026-2",
+    "sourceHash": "makine-is-ilanlar-13-nisan-2026-3",
     "language": "tr-TR",
     "status": "published",
-    "summary": "İş İlanları - 13 Nisan 2026. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "İş İlanları - 13 Nisan 2026. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "İş İlanları - 13 Nisan 2026. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "İş İlanları - 13 Nisan 2026. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-makine-makine-makine-muh-2026-bahar-vize-final-program-rev-27-mart-3",
+    "id": "gtu-makine-makine-makine-muh-2026-bahar-vize-final-program-rev-27-mart-4",
     "departmentId": "makine",
     "departmentName": "Makine Muhendisligi",
     "title": "Makine Müh. 2026 Bahar Vize Final Programı (rev 27 Mart)",
     "dateText": "26 Mart",
     "detailUrl": "https://www.gtu.edu.tr/fileman/Files/UserFiles/makine_muhendisligi_bolumu/26 Bahar Makine Vize Derslik ve Final Programı-rev3.pdf",
     "sourceUrl": "https://www.gtu.edu.tr/fileman/Files/UserFiles/makine_muhendisligi_bolumu/26 Bahar Makine Vize Derslik ve Final Programı-rev3.pdf",
-    "sourceHash": "makine-makine-muh-2026-bahar-vize-final-program-rev-27-mart-3",
+    "sourceHash": "makine-makine-muh-2026-bahar-vize-final-program-rev-27-mart-4",
     "language": "tr-TR",
     "status": "published",
     "summary": "Sayfa 1. UPDATE 27.03.2026 MÜHENDİSLİK FAKÜLTESİ MAKİNE MÜHENDİSLİĞİ BÖLÜMÜ 2025-2026 EĞİTİM ÖĞRETİM BAHAR YARIYILI VİZE - FİNAL SINAVI TARİHLERİ DER1S KODU DERS ADI DERS YÜRÜTÜCÜSÜ VİZE SINAV TARİHLERİ VİZE DERSLİKLERİ FİNAL SINAV TARİHLERİ 2. YARIYIL ME 104...",
     "bodyText": "Sayfa 1. UPDATE 27.03.2026 MÜHENDİSLİK FAKÜLTESİ MAKİNE MÜHENDİSLİĞİ BÖLÜMÜ 2025-2026 EĞİTİM ÖĞRETİM BAHAR YARIYILI VİZE - FİNAL SINAVI TARİHLERİ DER1S KODU DERS ADI DERS YÜRÜTÜCÜSÜ VİZE SINAV TARİHLERİ VİZE DERSLİKLERİ FİNAL SINAV TARİHLERİ 2. YARIYIL ME 104 Computer Aided Drawing Dr. Öğr. Üyesi Abdurrahman İŞBİTİRİCİ 17.04.2026 14:00-16:00 Merkez Amfi-2 Merkez Amfi-4 12.06.2026 14:00-16:00 INF112 Programming-II Dr. Öğr. Üyesi Muhammed Ali KEÇEBAŞ 07.04.2026 10:00-12:30 Merkez Amfi-3 Elektronik B02 Elektronik Z46 09.06.2026 09:00-11:15 4. YARIYIL ME 212 Strength of Materials Prof. Dr. Mehmet Ali ARSLAN 14.04.2026 10:30-12:30 Makine ve Malzeme Binası D5 Elektronik Z03 Elektronik Z16 09.06.2026 11:30-13:30 ME 242 Applications of Thermodynamics Prof. Dr. Alp Er KONUKMAN 13.04.2026 13:00-16:00 Makine ve Malzeme Binası D6 Makine ve Malzeme Binası D7 Makine ve Malzeme Binası D8 Makine ve Malzeme Binası D12 08.04.2026 13:00-16:00 ME 234 Electrical and Electronic Systems Dr. Öğr. Üyesi Görkem Anıl AL 08.04.2026 13:30-15:30 Makine ve Malzeme Binası D5 Makine ve Malzeme Binası D11 10.06.2026 13:30-15:30 ME 232 Dynamics Öğr. Gör. Dr. Abdurrahman İŞBİTİRİCİ 09.04.2026 10:30-12:30 Harita Z08 Elektronik B02 Elektronik Z46 Elektronik Z50 11.06.2026 10:30-12:30 6. YARIYIL ME 304 Measurement and Instrumentation Öğr. Gör. Dr. Abdurrahman İŞBİTİRİCİ 10.04.2026 10:30-12:30 Makine ve Malzeme Binası D5 Makine ve Malzeme Binası D9 19.06.2026 09:30-11:30 ME 324 Design of Machine Elements II Dr. Öğr. Üyesi Behzad HASHEMI SOUDMAND 08.04.2026 10:00-12:00 Makine ve Malzeme Binası D1 2 Elektronik B02 Elektronik Z40 10.06.2026 09:30-12:30 ME 332 Control Systems Theory Dr. Öğr. Üyesi Saeed LOTFAN 09.04.2026 09:30-12:30 Makine ve Malzeme Binası D12 Elektronik B01 Elektronik Z46 18.06.2026 09:30-12:30 ME 342 Heat Transfer Doç. Dr. Gamze GEDİZ İLİŞ 06.04.2026 10:00-12:00 Makine ve Malzeme Binası D5 Elektronik Z46 08.06.2026 10:00-12:00 8. YARIYIL ME 314 Introduction to Composite Materials Prof. Dr. Ahmet Sinan ÖKTEM 16.04.2026 10:00-12:00 Makine ve Malzeme Binası D1 11.06.2026 10:00-12:00 ME 402 Introduction to Finite Element Analysis Doç. Dr. Fatih USTA (Uçak Müh) 22.04.2026 13:30-16:00 Havacılık Z05 10.06.2026 13:30-16:00 ME 410 Biomaterials for Engineers Dr. Öğr. Üyesi Zeynep ÜLKER DEMİR 10.04.2026 10:30-13:30 Makine ve Malzeme Binası D4 10.06.2026 10:00-13:00 ME 412 Machining Doç. Dr. Emel KURAM 06.04.2026 09:00-11:00 Makine ve Malzeme Binası D1 08.06.2026 09:00-11:00 ME 414 Polymer Materials and Polymer Processing Techniques Doç. Dr. Emel KURAM 13.04.2026 13:30-15:30 Makine ve Malzeme Binası D1 15.06.2026 13:30-15:30 ME 416 Computer Aided Manufacturing Dr. Öğr. Üyesi Recep ÖNLER Proje Proje Proje ME 401 Mechanical Engineering Laboratory Öğr. Gör. Dr. Abdurrahman İŞBİTİRİCİ Proje Proje Proje ME 447 Heating, Ventilating and Air Conditioning Dr. İbrahim ERSÖZ 27 .0 3 .2026 10:00 - 12:00 Makine ve Malzeme Binası D1 1 12.06.2026 10:00 - 12:00 Sayfa 2. UPDATE 27.03.2026 ME 453 Heat Exchanger Design Dr. Öğr. Üyesi Salih Özen ÜNVERDİ 07.05.2026 09:30 - 12:30 Makine ve Malzeme Binası D3 11.06.2026 09:30 - 12:30 ME 407 Computational Applications in Mechanical Engineering Dr. Öğr. Üyesi Ali EKEN (Uçak Müh) 14.04.2026 09:30 - 11:30 Makine ve Malzeme Binası D3 Proje ME 441 Fundamentals of Computational Fluid Dynamics Dr. Öğr. Üyesi Salih Özen ÜNVERDİ 28.04.2026 09:30 - 12:30 Makine ve Malzeme Binası D1 Makine ve Malzeme Binası D10 09.06.2026 09:30 - 12:30 ME 334 Machine Theory Dr. Öğr. Üyesi Peyman LAHE 30.04.2026 13:30 - 16:30 Makine ve Malzeme Binası D1 Proje ME 432 Mechatronic System Design Dr. Öğr. Üyesi Görkem Anıl AL 07.04.2026 13:30 - 15:30 Makine ve Malzeme Binası D7 09.06.2026 13:30 - 15:30"
   },
   {
-    "id": "gtu-makine-makine-ogrenci-dilekcesi-duyurusu-4",
-    "departmentId": "makine",
-    "departmentName": "Makine Muhendisligi",
-    "title": "Öğrenci Dilekçesi Duyurusu",
-    "dateText": "09 Mart",
-    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
-    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/302/3/display.aspx",
-    "sourceHash": "makine-ogrenci-dilekcesi-duyurusu-4",
+    "id": "gtu-malzeme-malzeme-final-s-navlar-potansiyel-mazeret-durumlar-hk-0",
+    "departmentId": "malzeme",
+    "departmentName": "Malzeme Bilimi ve Muhendisligi",
+    "title": "Final Sınavları Potansiyel Mazeret Durumları Hk.",
+    "dateText": "07 Mayıs",
+    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
+    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
+    "sourceHash": "malzeme-final-s-navlar-potansiyel-mazeret-durumlar-hk-0",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Öğrenci Dilekçesi Duyurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Öğrenci Dilekçesi Duyurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Final Sınavları Potansiyel Mazeret Durumları Hk.. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Final Sınavları Potansiyel Mazeret Durumları Hk.. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-malzeme-malzeme-guris-holding-yaz-staj-duyurusu-0",
+    "id": "gtu-malzeme-malzeme-toplu-mazeret-s-navlar-hk-1",
+    "departmentId": "malzeme",
+    "departmentName": "Malzeme Bilimi ve Muhendisligi",
+    "title": "Toplu Mazeret Sınavları Hk.",
+    "dateText": "07 Mayıs",
+    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
+    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
+    "sourceHash": "malzeme-toplu-mazeret-s-navlar-hk-1",
+    "language": "tr-TR",
+    "status": "published",
+    "summary": "Toplu Mazeret Sınavları Hk.. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Toplu Mazeret Sınavları Hk.. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
+  },
+  {
+    "id": "gtu-malzeme-malzeme-guris-holding-yaz-staj-duyurusu-2",
     "departmentId": "malzeme",
     "departmentName": "Malzeme Bilimi ve Muhendisligi",
     "title": "GÜRİŞ Holding Yaz Stajı Duyurusu",
     "dateText": "01 Mayıs",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceHash": "malzeme-guris-holding-yaz-staj-duyurusu-0",
+    "sourceHash": "malzeme-guris-holding-yaz-staj-duyurusu-2",
     "language": "tr-TR",
     "status": "published",
-    "summary": "GÜRİŞ Holding Yaz Stajı Duyurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "GÜRİŞ Holding Yaz Stajı Duyurusu. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "GÜRİŞ Holding Yaz Stajı Duyurusu. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "GÜRİŞ Holding Yaz Stajı Duyurusu. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-malzeme-malzeme-cemesan-group-eurotray-stajyer-ogrenci-talebi-hk-1",
+    "id": "gtu-malzeme-malzeme-cemesan-group-eurotray-stajyer-ogrenci-talebi-hk-3",
     "departmentId": "malzeme",
     "departmentName": "Malzeme Bilimi ve Muhendisligi",
     "title": "Çemesan Group / Eurotray Stajyer Öğrenci Talebi Hk.",
     "dateText": "30 Nisan",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceHash": "malzeme-cemesan-group-eurotray-stajyer-ogrenci-talebi-hk-1",
+    "sourceHash": "malzeme-cemesan-group-eurotray-stajyer-ogrenci-talebi-hk-3",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Çemesan Group / Eurotray Stajyer Öğrenci Talebi Hk.. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Çemesan Group / Eurotray Stajyer Öğrenci Talebi Hk.. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Çemesan Group / Eurotray Stajyer Öğrenci Talebi Hk.. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Çemesan Group / Eurotray Stajyer Öğrenci Talebi Hk.. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-malzeme-malzeme-2025-2026-yaz-tatilinde-staj-yapacak-ogrencilere-duyuru-2",
+    "id": "gtu-malzeme-malzeme-2025-2026-yaz-tatilinde-staj-yapacak-ogrencilere-duyuru-4",
     "departmentId": "malzeme",
     "departmentName": "Malzeme Bilimi ve Muhendisligi",
     "title": "2025-2026 Yaz Tatilinde Staj Yapacak Öğrencilere Duyuru",
     "dateText": "30 Nisan",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceHash": "malzeme-2025-2026-yaz-tatilinde-staj-yapacak-ogrencilere-duyuru-2",
+    "sourceHash": "malzeme-2025-2026-yaz-tatilinde-staj-yapacak-ogrencilere-duyuru-4",
     "language": "tr-TR",
     "status": "published",
-    "summary": "2025-2026 Yaz Tatilinde Staj Yapacak Öğrencilere Duyuru. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "2025-2026 Yaz Tatilinde Staj Yapacak Öğrencilere Duyuru. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
-  },
-  {
-    "id": "gtu-malzeme-malzeme-tasar-m-projesi-poster-format-3",
-    "departmentId": "malzeme",
-    "departmentName": "Malzeme Bilimi ve Muhendisligi",
-    "title": "Tasarım Projesi Poster Formatı",
-    "dateText": "22 Nisan",
-    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceHash": "malzeme-tasar-m-projesi-poster-format-3",
-    "language": "tr-TR",
-    "status": "published",
-    "summary": "Tasarım Projesi Poster Formatı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Tasarım Projesi Poster Formatı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
-  },
-  {
-    "id": "gtu-malzeme-malzeme-ulusal-staj-program-hk-4",
-    "departmentId": "malzeme",
-    "departmentName": "Malzeme Bilimi ve Muhendisligi",
-    "title": "Ulusal Staj Programı Hk.",
-    "dateText": "20 Mart",
-    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/304/3/display.aspx",
-    "sourceHash": "malzeme-ulusal-staj-program-hk-4",
-    "language": "tr-TR",
-    "status": "published",
-    "summary": "Ulusal Staj Programı Hk.. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Ulusal Staj Programı Hk.. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "2025-2026 Yaz Tatilinde Staj Yapacak Öğrencilere Duyuru. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "2025-2026 Yaz Tatilinde Staj Yapacak Öğrencilere Duyuru. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
     "id": "gtu-matematik-matematik-2025-2026-bahar-donemi-ara-s-nav-program-0",
@@ -520,73 +520,73 @@ export const GENERATED_GTU_ANNOUNCEMENTS = [
     "bodyText": "Sayfa 1. MERKEZ AMFİ-1 MERKEZ AMFİ-2 MERKEZ AMFİ-3 MERKEZ AMFİ-4 ELEKTRONİK AMFİ 1 ELEKTRONİK AMFİ 2 HARİTA AMFİ 1 HARİTA Z06 188 188 188 188 140 140 102 96 08:30-09:20 PHYS122.1 PHYS122.3 MATH102.1 MATH102.3 MATH101.1 MAT 101.1 09:30-10:20 PHYS122.1 PHYS122.3 MATH102.1 MATH102.3 MATH101.1 MAT 101.1 10:30-11:20 PHYS122.5 PHYS122.7 MATH102.5 MATH102.7 PHYS121.1 MAT 102.1 11:30-12:20 PHYS122.5 PHYS122.7 MATH102.5 MATH102.7 PHYS121.1 MAT 102.1 12:30-13:20 13:30-14:20 PHYS114.1 PHYS122.4 MATH102.2 MATH102.4 PHYS122.2 MATH101.2 FİZ 122.1 14:30-15:20 PHYS114.1 PHYS122.4 MATH102.2 MATH102.4 PHYS122.2 MATH101.2 FİZ 122.1 15:30-16:20 PHYS114.1 PHYS122.6 MATH102.6 MATH102.8 PHYS122.8 FİZ 121.1 16:30-17:20 PHYS122.6 MATH102.6 MATH102.8 PHYS122.8 FİZ 121.1 08:30-09:20 ENG112 INF101 09:30-10:20 ENG112 INF101 10:30-11:20 ENG112 INF101 11:30-12:20 ENG112 INF101 12:30-13:20 13:30-14:20 MATH116.1 MATH116.2 MATH116.3 MATH116.4 MAT 116.1 14:30-15:20 MATH116.1 MATH116.2 MATH116.3 MATH116.4 MAT 116.1 15:30-16:20 MATH116.1 MATH116.2 MATH116.3 MATH116.4 MAT 116.1 16:30-17:20 08:30-09:20 PHYS122.1 PHYS122.3 MATH102.1 MATH102.3 MATH101.1 MAT 101.1 09:30-10:20 PHYS122.1 PHYS122.3 MATH102.1 MATH102.3 MATH101.1 MAT 101.1 10:30-11:20 PHYS122.5 PHYS122.7 MATH102.5 MATH102.7 PHYS121.1 MAT 102.1 11:30-12:20 PHYS122.5 PHYS122.7 MATH102.5 MATH102.7 PHYS121.1 MAT 102.1 12:30-13:20 13:30-14:20 PHYS122.4 MATH102.2 MATH102.4 PHYS122.2 MATH101.2 FİZ 122.1 14:30-15:20 PHYS122.4 MATH102.2 MATH102.4 PHYS122.2 MATH101.2 FİZ 122.1 15:30-16:20 PHYS122.6 MATH102.6 MATH102.8 PHYS122.8 FİZ 121.1 16:30-17:20 PHYS122.6 MATH102.6 MATH102.8 PHYS122.8 FİZ 121.1 08:30-09:20 09:30-10:20 CHEM102.1 CHEM102.2 CHEM102.3 CHEM102.4 10:30-11:20 CHEM102.1 CHEM102.2 CHEM102.3 CHEM102.4 11:30-12:20 CHEM102.1 CHEM102.2 CHEM102.3 CHEM102.4 12:30-13:20 13:30-14:20 MATH102.1 MATH102.3 MATH102.5 MATH102.7 MATH101.1 MAT 102.1 14:30-15:20 MATH102.1 MATH102.3 MATH102.5 MATH102.7 MATH101.1 MAT 102.1 15:30-16:20 MATH102.2 MATH102.4 MATH102.6 MATH102.8 MATH101.2 MAT 101.1 16:30-17:20 MATH102.2 MATH102.4 MATH102.6 MATH102.8 MATH101.2 MAT 101.1 08:30-09:20 INF101 09:30-10:20 MATH214.1 INF101 MATH214.3 MAT 214.1 MATH214.2 10:30-11:20 MATH214.1 INF101 MATH214.3 MAT 214.1 MATH214.2 11:30-12:20 MATH214.1 INF101 MATH214.3 MAT 214.1 MATH214.2 12:30-13:20 13:30-14:20 14:30-15:20 15:30-16:20 16:30-17:20 C U M A G Ü N SAAT P A Z A R T E S İ S A L I Ç A R Ş A M B A P E R Ş E M B E"
   },
   {
-    "id": "gtu-mimarlik-mimarlik-2025-2026-bahar-donemi-lisans-ve-lisansustu-ara-s-nav-program-0",
+    "id": "gtu-mimarlik-mimarlik-2026-27-guz-donemi-gtu-mimarl-k-anabilim-dal-lisansustu-giris-s-navlar-hakk-nda-bilgilendirme-04-05-2026-0",
+    "departmentId": "mimarlik",
+    "departmentName": "Mimarlik",
+    "title": "2026-27 Güz Dönemi GTÜ Mimarlık Anabilim Dalı Lisansüstü Giriş Sınavları Hakkında Bilgilendirme (04.05.2026)",
+    "dateText": "06 Mayıs",
+    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
+    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
+    "sourceHash": "mimarlik-2026-27-guz-donemi-gtu-mimarl-k-anabilim-dal-lisansustu-giris-s-navlar-hakk-nda-bilgilendirme-04-05-2026-0",
+    "language": "tr-TR",
+    "status": "published",
+    "summary": "2026-27 Güz Dönemi GTÜ Mimarlık Anabilim Dalı Lisansüstü Giriş Sınavları Hakkında Bilgilendirme (04.05.2026). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "2026-27 Güz Dönemi GTÜ Mimarlık Anabilim Dalı Lisansüstü Giriş Sınavları Hakkında Bilgilendirme (04.05.2026). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
+  },
+  {
+    "id": "gtu-mimarlik-mimarlik-2025-2026-bahar-donemi-lisans-ve-lisansustu-ara-s-nav-program-1",
     "departmentId": "mimarlik",
     "departmentName": "Mimarlik",
     "title": "2025-2026 Bahar Dönemi Lisans ve Lisansüstü Ara Sınav Programı",
     "dateText": "31 Mart",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
-    "sourceHash": "mimarlik-2025-2026-bahar-donemi-lisans-ve-lisansustu-ara-s-nav-program-0",
+    "sourceHash": "mimarlik-2025-2026-bahar-donemi-lisans-ve-lisansustu-ara-s-nav-program-1",
     "language": "tr-TR",
     "status": "published",
-    "summary": "2025-2026 Bahar Dönemi Lisans ve Lisansüstü Ara Sınav Programı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "2025-2026 Bahar Dönemi Lisans ve Lisansüstü Ara Sınav Programı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "2025-2026 Bahar Dönemi Lisans ve Lisansüstü Ara Sınav Programı. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "2025-2026 Bahar Dönemi Lisans ve Lisansüstü Ara Sınav Programı. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-mimarlik-mimarlik-akademik-kadro-basvurusu-kapsam-nda-yuz-yuze-seminer-duyurusu-20251209-no-lu-ilan-1",
+    "id": "gtu-mimarlik-mimarlik-akademik-kadro-basvurusu-kapsam-nda-yuz-yuze-seminer-duyurusu-20251209-no-lu-ilan-2",
     "departmentId": "mimarlik",
     "departmentName": "Mimarlik",
     "title": "Akademik Kadro Başvurusu Kapsamında Yüz Yüze Seminer Duyurusu (20251209 No’lu İlan)",
     "dateText": "09 Şubat",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
-    "sourceHash": "mimarlik-akademik-kadro-basvurusu-kapsam-nda-yuz-yuze-seminer-duyurusu-20251209-no-lu-ilan-1",
+    "sourceHash": "mimarlik-akademik-kadro-basvurusu-kapsam-nda-yuz-yuze-seminer-duyurusu-20251209-no-lu-ilan-2",
     "language": "tr-TR",
     "status": "published",
-    "summary": "Akademik Kadro Başvurusu Kapsamında Yüz Yüze Seminer Duyurusu (20251209 No’lu İlan). Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "Akademik Kadro Başvurusu Kapsamında Yüz Yüze Seminer Duyurusu (20251209 No’lu İlan). Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "Akademik Kadro Başvurusu Kapsamında Yüz Yüze Seminer Duyurusu (20251209 No’lu İlan). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "Akademik Kadro Başvurusu Kapsamında Yüz Yüze Seminer Duyurusu (20251209 No’lu İlan). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-mimarlik-mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisansustu-ders-program-2",
+    "id": "gtu-mimarlik-mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisansustu-ders-program-3",
     "departmentId": "mimarlik",
     "departmentName": "Mimarlik",
     "title": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisansüstü Ders Programı",
     "dateText": "06 Şubat",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
-    "sourceHash": "mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisansustu-ders-program-2",
+    "sourceHash": "mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisansustu-ders-program-3",
     "language": "tr-TR",
     "status": "published",
-    "summary": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisansüstü Ders Programı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisansüstü Ders Programı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisansüstü Ders Programı. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisansüstü Ders Programı. Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   },
   {
-    "id": "gtu-mimarlik-mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisans-ders-program-guncel-07-02-2026-3",
+    "id": "gtu-mimarlik-mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisans-ders-program-guncel-07-02-2026-4",
     "departmentId": "mimarlik",
     "departmentName": "Mimarlik",
     "title": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisans Ders Programı (GUNCEL - 07.02.2026)",
     "dateText": "06 Şubat",
     "detailUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
     "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
-    "sourceHash": "mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisans-ders-program-guncel-07-02-2026-3",
+    "sourceHash": "mimarlik-2025-2026-egitim-ogretim-y-l-bahar-donemi-lisans-ders-program-guncel-07-02-2026-4",
     "language": "tr-TR",
     "status": "published",
-    "summary": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisans Ders Programı (GUNCEL - 07.02.2026). Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisans Ders Programı (GUNCEL - 07.02.2026). Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
-  },
-  {
-    "id": "gtu-mimarlik-mimarlik-2025-2026-guz-mimarl-k-lisans-d-s-nav-program-4",
-    "departmentId": "mimarlik",
-    "departmentName": "Mimarlik",
-    "title": "2025-2026 Güz Mimarlık Lisans D Sınav Programı",
-    "dateText": "23 Ocak",
-    "detailUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
-    "sourceUrl": "https://www.gtu.edu.tr/tr/kategori/564/3/display.aspx",
-    "sourceHash": "mimarlik-2025-2026-guz-mimarl-k-lisans-d-s-nav-program-4",
-    "language": "tr-TR",
-    "status": "published",
-    "summary": "2025-2026 Güz Mimarlık Lisans D Sınav Programı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.",
-    "bodyText": "2025-2026 Güz Mimarlık Lisans D Sınav Programı. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi."
+    "summary": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisans Ders Programı (GUNCEL - 07.02.2026). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı.",
+    "bodyText": "2025-2026 Eğitim Öğretim Yılı Bahar dönemi Lisans Ders Programı (GUNCEL - 07.02.2026). Bu duyuru için kaynak sayfada ayrı detay metni bulunamadı."
   }
 ];

@@ -52,6 +52,16 @@ Hedef: demo verisinden gercek veriye gecis.
 
 Hedef: gonullunun yukledigi kitaplarin kontrolsuz yayina cikmamasini saglamak.
 
+- [x] Admin/QC gunluk todo listesini netlestir ve bu bolumu isaretlenebilir takip listesi olarak kullan.
+- [x] Firestore servis katmanina bekleyen kitaplari okuma, inceleme onizlemesi alma ve review status guncelleme fonksiyonlari ekle.
+- [x] `/admin/qc` route'unu ekle ve sadece admin rolundeki kullanicilara ac.
+- [x] Sidebar'da admin kullanicilar icin QC Panel linkini goster.
+- [x] Onay bekleyen kitaplar listesini; yukleyen, kaynak tipi, kategori, parca/sure bilgisiyle goster.
+- [x] Secilen kitap icin PDF metin ornegi ve temel metadata onizlemesi goster.
+- [x] `published`, `rejected`, `needs_fix` durumlarini review notu ile yonet.
+- [x] PDF yuklemede MVP test icin hemen yayinlama secenegini kapat; kitaplar varsayilan olarak onaya gitsin.
+- [x] `npm run build` ile istemci derlemesini dogrula.
+
 - Admin rol kontrolu ekle.
 - Onay bekleyen kitaplar listesi ekle.
 - Kitap detayinda PDF metin ornegi, sayfa/parca sayisi ve durum goster.
@@ -62,9 +72,16 @@ Hedef: gonullunun yukledigi kitaplarin kontrolsuz yayina cikmamasini saglamak.
 
 Hedef: gonullunun kendi katkisini takip edebilmesi.
 
-- "Kitaplarim" veya mevcut kitap yonetiminde yuklenen PDF'leri durumlariyla goster.
-- Yukleme sonrasi basari/uyari mesajlarini netlestir.
-- Eksik metadata alanlarini toparla: dil, kategori, kaynak, telif/izin notu.
+- [x] Firebase Storage/Blaze karari nedeniyle ses upload'u canli ana akistan cikartildi; ekranlar kontrollu bekleme moduna alindi.
+- [x] PDF/TTS akisi 8 Mayis ana MVP yolu olarak netlestirildi.
+- [x] 8 Mayis gonullu kitap akisi todo listesini netlestir.
+- [x] Firestore servis katmanina kullanicinin kendi kitaplarini okuyan fonksiyon ekle.
+- [x] "Kitaplarim" sekmesini gercek veriye bagla; PDF ve ses yuklemelerini durumlariyla goster.
+- [x] Durum etiketlerini gonullunun anlayacagi dile cevir: onay bekliyor, yayinda, duzeltme istendi, reddedildi.
+- [x] Admin review notunu gonullu ekraninda goster.
+- [x] Yukleme sonrasi basari/uyari mesajlarini QC akisiyle uyumlu hale getir.
+- [x] Eksik metadata alanlarini toparla: dil, kategori, kaynak, telif/izin notu.
+- [x] `npm run lint` ve `npm run build` ile istemciyi dogrula.
 
 ### 9 Mayis 2026 - Erisilebilirlik ve Mobil Test
 

@@ -1,0 +1,172 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/users/$(uid);
+    }
+
+    function bookPath(bookId) {
+      return /databases/$(database)/documents/books/$(bookId);
+    }
+
+    function currentRole() {
+      return signedIn() && exists(userPath(request.auth.uid))
+        ? get(userPath(request.auth.uid)).data.role
+        : null;
+    }
+
+    function isAdmin() {
+      return currentRole() == 'admin';
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isPublishedBook(bookId) {
+      return exists(bookPath(bookId))
+        && get(bookPath(bookId)).data.status == 'published'
+        && get(bookPath(bookId)).data.visibility == 'public';
+    }
+
+    function createdBySignedInUser() {
+      return signedIn() && request.resource.data.createdBy == request.auth.uid;
+    }
+
+    function recordedBySignedInUser() {
+      return signedIn() && request.resource.data.recordedBy == request.auth.uid;
+    }
+
+    function existingBookOwner() {
+      return signedIn() && resource.data.createdBy == request.auth.uid;
+    }
+
+    function existingChapterOwner() {
+      return signedIn() && resource.data.recordedBy == request.auth.uid;
+    }
+
+    function relatedBookOwner(bookId) {
+      return signedIn()
+        && exists(bookPath(bookId))
+        && get(bookPath(bookId)).data.createdBy == request.auth.uid;
+    }
+
+    function relatedBookOwnerAfter(bookId) {
+      return signedIn()
+        && existsAfter(bookPath(bookId))
+        && getAfter(bookPath(bookId)).data.createdBy == request.auth.uid;
+    }
+
+    function userKeepsOwnRole(uid) {
+      return isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role;
+    }
+
+    function userCreatesSafeProfile(uid) {
+      return isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role in ['volunteer', 'blind_user'];
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if userCreatesSafeProfile(uid) || isAdmin();
+      allow update: if userKeepsOwnRole(uid) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /books/{bookId} {
+      allow read: if resource.data.status == 'published'
+        || existingBookOwner()
+        || isAdmin();
+
+      allow create: if createdBySignedInUser()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.visibility == 'public';
+
+      allow update: if isAdmin() || (
+        existingBookOwner()
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.status in ['pending', 'needs_fix', 'rejected', 'published']
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /chapters/{chapterId} {
+      allow read: if resource.data.status == 'published'
+        || existingChapterOwner()
+        || relatedBookOwner(resource.data.bookId)
+        || isAdmin();
+
+      allow create: if recordedBySignedInUser()
+        && relatedBookOwnerAfter(request.resource.data.bookId)
+        && request.resource.data.status == 'pending';
+
+      allow update: if isAdmin() || (
+        existingChapterOwner()
+        && relatedBookOwner(resource.data.bookId)
+        && request.resource.data.recordedBy == resource.data.recordedBy
+        && request.resource.data.bookId == resource.data.bookId
+        && request.resource.data.status in ['pending', 'needs_fix', 'rejected']
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /book_text_chunks/{chunkId} {
+      allow read: if isPublishedBook(resource.data.bookId)
+        || relatedBookOwner(resource.data.bookId)
+        || isAdmin();
+
+      allow create: if relatedBookOwnerAfter(request.resource.data.bookId);
+      allow update, delete: if isAdmin();
+    }
+
+    match /announcements/{announcementId} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /playback_progress/{progressId} {
+      allow read: if signedIn()
+        && resource.data.uid == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid;
+    }
+
+    match /favorites/{favoriteId} {
+      allow read: if signedIn()
+        && resource.data.uid == request.auth.uid;
+      allow create, update: if signedIn()
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn()
+        && resource.data.uid == request.auth.uid;
+    }
+
+    match /listening_events/{eventId} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /app_config/{docId} {
+      allow read: if docId == 'public' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

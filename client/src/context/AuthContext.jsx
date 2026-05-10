@@ -4,9 +4,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  updateProfile
+  updateProfile as updateAuthProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 
 const AuthContext = createContext();
@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   // Kayıt ol
   async function register(email, password, name) {
     const result = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(result.user, { displayName: name });
+    await updateAuthProfile(result.user, { displayName: name });
 
     // Firestore'da kullanıcı profili oluştur
     await setDoc(doc(db, 'users', result.user.uid), {
@@ -39,6 +39,23 @@ export function AuthProvider({ children }) {
     });
 
     return result;
+  }
+
+  async function updateUserProfile(updates) {
+    if (!currentUser) throw new Error('Oturum bulunamadı.');
+
+    const nextProfile = {
+      ...userProfile,
+      ...updates,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (updates.name && updates.name !== currentUser.displayName) {
+      await updateAuthProfile(currentUser, { displayName: updates.name });
+    }
+
+    await setDoc(doc(db, 'users', currentUser.uid), nextProfile, { merge: true });
+    setUserProfile({ ...nextProfile, updatedAt: new Date() });
   }
 
   // Giriş yap
@@ -68,7 +85,7 @@ export function AuthProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  const value = { currentUser, userProfile, register, login, logout, loading };
+  const value = { currentUser, userProfile, register, login, logout, updateUserProfile, loading };
 
   return (
     <AuthContext.Provider value={value}>

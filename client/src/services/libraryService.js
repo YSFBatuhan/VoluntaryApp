@@ -13,7 +13,9 @@ import {
 import { db } from '../firebase/config';
 import { buildKeywords, normalizeText } from './textUtils';
 
-export async function createAudioBook({ form, audioUrl, currentUser, userProfile }) {
+export async function createAudioBook({ form, audioUpload, currentUser, userProfile }) {
+  const chapterTitle = form.chapterTitle?.trim() || form.title?.trim() || 'Tek Kayıt';
+
   const bookRef = await addDoc(collection(db, 'books'), {
     title: form.title,
     titleLower: normalizeText(form.title),
@@ -23,15 +25,17 @@ export async function createAudioBook({ form, audioUrl, currentUser, userProfile
     type: 'book',
     sourceType: 'audio_upload',
     readingMode: 'audio_file',
-    language: form.language === 'İngilizce' ? 'en-US' : 'tr-TR',
+    language: getLanguageCode(form.language),
     description: form.notes,
-    keywords: buildKeywords([form.title, form.author, form.category, form.chapterTitle]),
+    sourceNote: form.sourceNote || '',
+    permissionNote: form.permissionNote || '',
+    keywords: buildKeywords([form.title, form.author, form.category, chapterTitle]),
     status: 'pending',
     visibility: 'public',
     chapterCount: 1,
     totalDurationSec: 0,
     createdBy: currentUser.uid,
-    uploaderName: userProfile?.name || currentUser.displayName || 'Gonullu',
+    uploaderName: userProfile?.name || currentUser.displayName || 'Gönüllü',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -39,21 +43,22 @@ export async function createAudioBook({ form, audioUrl, currentUser, userProfile
   await addDoc(collection(db, 'chapters'), {
     bookId: bookRef.id,
     order: 1,
-    chapterTitle: form.chapterTitle,
-    chapterTitleLower: normalizeText(form.chapterTitle),
+    chapterTitle,
+    chapterTitleLower: normalizeText(chapterTitle),
     status: 'pending',
     durationSec: 0,
     readingMode: 'audio_file',
     audio: {
-      provider: 'cloudinary',
-      url: audioUrl,
-      publicId: '',
-      format: 'audio',
-      bytes: 0,
+      provider: 'firebase_storage',
+      url: audioUpload.url,
+      publicId: audioUpload.path,
+      format: audioUpload.contentType || 'audio',
+      bytes: audioUpload.bytes || 0,
       bitrateKbps: 0,
+      fileName: audioUpload.fileName || '',
     },
     recordedBy: currentUser.uid,
-    recordedByName: userProfile?.name || currentUser.displayName || 'Gonullu',
+    recordedByName: userProfile?.name || currentUser.displayName || 'Gönüllü',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -71,8 +76,10 @@ export async function createPdfBook({ form, pdfInfo, currentUser, userProfile, p
     type: 'book',
     sourceType: 'pdf',
     readingMode: 'tts_text',
-    language: form.language === 'İngilizce' ? 'en-US' : 'tr-TR',
+    language: getLanguageCode(form.language),
     description: form.notes,
+    sourceNote: form.sourceNote || '',
+    permissionNote: form.permissionNote || '',
     keywords: buildKeywords([form.title, form.author, form.category, pdfInfo.fileName]),
     status: publishImmediately ? 'published' : 'pending',
     visibility: 'public',
@@ -90,7 +97,7 @@ export async function createPdfBook({ form, pdfInfo, currentUser, userProfile, p
       fileName: pdfInfo.fileName,
     },
     createdBy: currentUser.uid,
-    uploaderName: userProfile?.name || currentUser.displayName || 'Gonullu',
+    uploaderName: userProfile?.name || currentUser.displayName || 'Gönüllü',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     publishedAt: publishImmediately ? serverTimestamp() : null,
@@ -107,7 +114,7 @@ export async function createPdfBook({ form, pdfInfo, currentUser, userProfile, p
     textChunkStart: 1,
     textChunkEnd: pdfInfo.chunks.length,
     recordedBy: currentUser.uid,
-    recordedByName: userProfile?.name || currentUser.displayName || 'Gonullu',
+    recordedByName: userProfile?.name || currentUser.displayName || 'Gönüllü',
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     publishedAt: publishImmediately ? serverTimestamp() : null,
@@ -125,7 +132,7 @@ export async function createPdfBook({ form, pdfInfo, currentUser, userProfile, p
       text: chunk.text,
       charCount: chunk.charCount,
       wordCount: chunk.wordCount,
-      language: form.language === 'İngilizce' ? 'en-US' : 'tr-TR',
+      language: getLanguageCode(form.language),
       createdAt: serverTimestamp(),
     });
   });
@@ -183,20 +190,207 @@ export async function getPublishedChapters(bookId) {
     .sort((a, b) => a.order - b.order);
 }
 
+export async function getPendingReviewBooks() {
+  const booksQuery = query(
+    collection(db, 'books'),
+    where('status', '==', 'pending'),
+    limit(30),
+  );
+  const snapshot = await getDocs(booksQuery);
+
+  return snapshot.docs
+    .map((bookDoc) => ({
+      id: bookDoc.id,
+      ...bookDoc.data(),
+    }))
+    .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
+}
+
+export async function getBooksByOwner(ownerId) {
+  const booksQuery = query(
+    collection(db, 'books'),
+    where('createdBy', '==', ownerId),
+    limit(50),
+  );
+  const snapshot = await getDocs(booksQuery);
+
+  return snapshot.docs
+    .map((bookDoc) => ({
+      id: bookDoc.id,
+      ...bookDoc.data(),
+    }))
+    .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
+}
+
+export async function getBookReviewPreview(bookId) {
+  const chaptersQuery = query(
+    collection(db, 'chapters'),
+    where('bookId', '==', bookId),
+    limit(10),
+  );
+  const chunksQuery = query(
+    collection(db, 'book_text_chunks'),
+    where('bookId', '==', bookId),
+    limit(3),
+  );
+
+  const [chaptersSnapshot, chunksSnapshot] = await Promise.all([
+    getDocs(chaptersQuery),
+    getDocs(chunksQuery),
+  ]);
+
+  return {
+    chapters: chaptersSnapshot.docs
+      .map((chapterDoc) => ({ id: chapterDoc.id, ...chapterDoc.data() }))
+      .sort((a, b) => a.order - b.order),
+    chunks: chunksSnapshot.docs
+      .map((chunkDoc) => ({ id: chunkDoc.id, ...chunkDoc.data() }))
+      .sort((a, b) => a.order - b.order),
+  };
+}
+
+export async function updateBookReviewStatus({ bookId, status, reviewNote, reviewerId }) {
+  const nextStatus = status === 'approved' ? 'published' : status;
+  const batch = writeBatch(db);
+  const bookRef = doc(db, 'books', bookId);
+  const chaptersQuery = query(collection(db, 'chapters'), where('bookId', '==', bookId));
+  const chaptersSnapshot = await getDocs(chaptersQuery);
+  const reviewPayload = {
+    status: nextStatus,
+    reviewNote: reviewNote || '',
+    reviewedBy: reviewerId,
+    reviewedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  batch.update(bookRef, {
+    ...reviewPayload,
+    publishedAt: nextStatus === 'published' ? serverTimestamp() : null,
+  });
+
+  chaptersSnapshot.docs.forEach((chapterDoc) => {
+    batch.update(doc(db, 'chapters', chapterDoc.id), {
+      status: nextStatus,
+      reviewNote: reviewNote || '',
+      reviewedBy: reviewerId,
+      reviewedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      publishedAt: nextStatus === 'published' ? serverTimestamp() : null,
+    });
+  });
+
+  await batch.commit();
+}
+
+export async function updateVolunteerBookMetadata({ bookId, ownerId, form }) {
+  const bookRef = doc(db, 'books', bookId);
+  const status = form.resubmit ? 'pending' : form.status;
+  const batch = writeBatch(db);
+  const chaptersSnapshot = form.resubmit
+    ? await getDocs(query(collection(db, 'chapters'), where('bookId', '==', bookId)))
+    : null;
+  const payload = {
+    title: form.title,
+    titleLower: normalizeText(form.title),
+    author: form.author || '',
+    authorLower: normalizeText(form.author || ''),
+    category: form.category,
+    language: getLanguageCode(form.language),
+    description: form.notes || '',
+    sourceNote: form.sourceNote || '',
+    permissionNote: form.permissionNote || '',
+    keywords: buildKeywords([form.title, form.author, form.category, form.sourceNote]),
+    updatedAt: serverTimestamp(),
+    volunteerUpdatedAt: serverTimestamp(),
+  };
+
+  if (status) {
+    payload.status = status;
+  }
+
+  if (form.resubmit) {
+    payload.resubmittedAt = serverTimestamp();
+    payload.reviewNote = '';
+    payload.reviewedBy = '';
+    payload.reviewedAt = null;
+  }
+
+  batch.update(bookRef, {
+    ...payload,
+    createdBy: ownerId,
+  });
+
+  if (chaptersSnapshot) {
+    chaptersSnapshot.docs.forEach((chapterDoc) => {
+      batch.update(doc(db, 'chapters', chapterDoc.id), {
+        status: 'pending',
+        reviewNote: '',
+        updatedAt: serverTimestamp(),
+      });
+    });
+  }
+
+  await batch.commit();
+}
+
+export async function replaceBookAudioForReview({ bookId, ownerId, audioUpload }) {
+  const bookRef = doc(db, 'books', bookId);
+  const chaptersSnapshot = await getDocs(
+    query(collection(db, 'chapters'), where('bookId', '==', bookId)),
+  );
+
+  if (chaptersSnapshot.empty) {
+    throw new Error('Bu kitap için güncellenecek ses bölümü bulunamadı.');
+  }
+
+  const batch = writeBatch(db);
+  batch.update(bookRef, {
+    status: 'pending',
+    reviewNote: '',
+    reviewedBy: '',
+    reviewedAt: null,
+    resubmittedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    createdBy: ownerId,
+  });
+
+  chaptersSnapshot.docs.forEach((chapterDoc) => {
+    const currentAudio = chapterDoc.data().audio || {};
+    batch.update(doc(db, 'chapters', chapterDoc.id), {
+      status: 'pending',
+      reviewNote: '',
+      reviewedBy: '',
+      reviewedAt: null,
+      audio: {
+        ...currentAudio,
+        provider: 'firebase_storage',
+        url: audioUpload.url,
+        publicId: audioUpload.path,
+        format: audioUpload.contentType || currentAudio.format || 'audio',
+        bytes: audioUpload.bytes || currentAudio.bytes || 0,
+        fileName: audioUpload.fileName || currentAudio.fileName || '',
+      },
+      updatedAt: serverTimestamp(),
+    });
+  });
+
+  await batch.commit();
+}
+
 export async function upsertPublicAppConfig() {
   await setDoc(
     doc(db, 'app_config', 'public'),
     {
       blindMode: {
-        welcomeMessage: 'GTU EchoVoices dinleme moduna hos geldiniz.',
+        welcomeMessage: 'GTÜ EchoVoices dinleme moduna hoş geldiniz.',
         defaultSpeechRate: 0.9,
         maxBooksPerPage: 20,
         voiceCommandsEnabled: true,
       },
       uploadLimits: {
-        maxAudioBytes: 52_428_800,
+        maxAudioBytes: 26_214_400,
         maxPdfBytes: 20_971_520,
-        allowedFormats: ['mp3', 'wav', 'aac', 'webm'],
+        allowedFormats: ['mp3', 'm4a', 'aac', 'webm', 'ogg', 'wav'],
         allowedDocumentFormats: ['pdf'],
         recommendedBitrateKbps: 128,
       },
@@ -212,3 +406,9 @@ function getMillis(value) {
   if (value instanceof Date) return value.getTime();
   return 0;
 }
+
+function getLanguageCode(language) {
+  if (language === 'İngilizce' || language === 'Ingilizce' || language === 'en-US') return 'en-US';
+  return 'tr-TR';
+}
+

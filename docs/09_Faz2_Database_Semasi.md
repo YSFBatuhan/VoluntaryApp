@@ -258,6 +258,44 @@ Risk: Taranmis/gorsel PDF'lerde metin cikmayabilir. OCR maliyetli olabilecegi ic
 
 ## `playback_progress`
 
+10 Mayis 2026 guncellemesi: Blind Mode icinde cihazlar arasi kaldigi yerden devam icin `playback_progress` kullanilmaya baslandi. LocalStorage fallback olarak kalir; kullanici giris yapmissa Firestore kaydi onceliklidir.
+
+Dokuman ID formati:
+
+```text
+{uid}_{bookId}
+```
+
+PDF/TTS kitaplarda:
+
+- `chunkIndex`: Okunan metin parcasinin 0 tabanli index'i.
+- `pageStart`: Kullaniciya soylenen sayfa numarasi.
+- `positionSec`: 0 kalabilir.
+
+Sesli kitaplarda:
+
+- `chapterId`: Oynatilan yayinlanmis bolum.
+- `positionSec`: Ses dosyasinda kalinan saniye.
+- `chunkIndex` ve `pageStart`: 0/null kalabilir.
+
+Blind Mode su an progress'i su anlarda yazar:
+
+- PDF/TTS chunk okunmaya basladiginda.
+- Kullanici duraklattiginda.
+- Kullanici "kaldigim yeri isaretle" dediginde.
+- Sesli kitap oynarken yaklasik 15 saniyede bir.
+- Sesli kitapta ileri/geri sarildiginda.
+- Sesli kitap duraklatildiginda.
+
+Komutlar:
+
+- `kaldigim yeri isaretle`
+- `kaldigim yerden devam et`
+- `sonraki sayfa`
+- `onceki sayfa`
+- `10 saniye ileri`
+- `10 saniye geri`
+
 ## `announcements`
 
 GTU genel duyurulari ve bolum duyurulari icin ortak koleksiyondur. Dinleyici tarafinda bolum bazli filtrelenir.
@@ -312,9 +350,12 @@ Kullanicinin nerede kaldigini tutar. Dokuman ID formatı `uid_bookId` olmalidir.
   "uid": "auth_uid",
   "bookId": "book_id",
   "chapterId": "chapter_id",
+  "title": "Kitap adi",
+  "author": "Yazar",
+  "readingMode": "audio_file",
   "positionSec": 420,
-  "chunkOrder": 8,
-  "charOffset": 1200,
+  "chunkIndex": 8,
+  "pageStart": 42,
   "completed": false,
   "updatedAt": "Timestamp"
 }
@@ -469,7 +510,26 @@ Firestore hata mesajindan otomatik link verebilir, ama beklenen indexler:
 
 ## Security Rules Taslagi
 
-Bu tam dosya degil, karar taslagidir.
+10 Mayis 2026 guncellemesi: Uygulanabilir Firestore rules dosyasi repo kokune `firestore.rules` olarak eklendi. Firebase Console > Firestore Database > Rules ekranina bu dosya icerigi yapistirilip publish edilebilir.
+
+Ana kararlar:
+
+- Admin rolu `users/{uid}.role == "admin"` ile belirlenir.
+- Kullanici kendi `users/{uid}` profilini okuyup guncelleyebilir, ama kendi rolunu degistiremez.
+- Yeni kayit olan kullanici sadece `volunteer` veya `blind_user` roluyle profil olusturabilir.
+- Admin tum kitap, bolum, metin parcasi ve config kayitlarini yonetebilir.
+- Gonullu kendi yukledigi kitaplari ve ilgili bolum/metin parcalarini gorebilir.
+- Dinleyici/public taraf sadece `published` kitap, bolum ve metin parcalarini okuyabilir.
+- `app_config/public` herkes tarafindan okunabilir; `app_config/tts` sadece admin tarafindan okunup yazilabilir.
+
+Ilk admin atama:
+
+1. Firebase Console > Firestore Database > `users` koleksiyonuna gir.
+2. Admin yapmak istedigin kullanicinin UID dokumanini ac.
+3. `role` alanini `admin` yap.
+4. Kullanici cikis-giris yaptiginda `/admin/qc` ve `/admin/tts` ekranlarini gorebilir.
+
+Eski karar taslagi:
 
 ```javascript
 rules_version = '2';

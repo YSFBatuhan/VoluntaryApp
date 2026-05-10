@@ -10,6 +10,11 @@ import Dashboard from './pages/Dashboard';
 import BookManagement from './pages/BookManagement';
 import RecordingStudio from './pages/RecordingStudio';
 import BlindMode from './pages/BlindMode';
+import AdminQcPanel from './pages/AdminQcPanel';
+import AdminTtsSettings from './pages/AdminTtsSettings';
+import ProfileSettings from './pages/ProfileSettings';
+import Statistics from './pages/Statistics';
+import Community from './pages/Community';
 
 import './index.css';
 
@@ -44,6 +49,46 @@ function App() {
             <ProtectedRoute>
               <VolunteerLayout>
                 <RecordingStudio />
+              </VolunteerLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/statistics" element={
+            <ProtectedRoute>
+              <VolunteerLayout>
+                <Statistics />
+              </VolunteerLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/community" element={
+            <ProtectedRoute>
+              <VolunteerLayout>
+                <Community />
+              </VolunteerLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin/qc" element={
+            <ProtectedRoute requiredRole="admin">
+              <VolunteerLayout>
+                <AdminQcPanel />
+              </VolunteerLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/admin/tts" element={
+            <ProtectedRoute requiredRole="admin">
+              <VolunteerLayout>
+                <AdminTtsSettings />
+              </VolunteerLayout>
+            </ProtectedRoute>
+          } />
+
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <VolunteerLayout>
+                <ProfileSettings />
               </VolunteerLayout>
             </ProtectedRoute>
           } />
