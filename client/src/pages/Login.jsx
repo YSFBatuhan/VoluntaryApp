@@ -25,10 +25,16 @@ export default function Login() {
   return (
     <div className="auth-page">
       <div className="auth-left">
-        <div className="auth-brand">EchoVoices</div>
+        <div className="auth-brand">
+          <span className="brand-mark" aria-hidden="true">D</span>
+          <span>
+            <strong>Duyum</strong>
+            <small>Erişilebilir Sesli Kütüphane</small>
+          </span>
+        </div>
         <h1 className="auth-headline">Sesiniz bir <br /><span>fark yaratıyor.</span></h1>
         <p className="auth-sub">
-          GTÜ Görme Engelliler Sesli Kütüphane Platformu.<br />
+          GTÜ erişilebilir sesli kütüphane platformu.<br />
           Her kelime, bir kapı aralıyor.
         </p>
         <div className="auth-stats">

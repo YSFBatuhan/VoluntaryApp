@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { getAudioPromptConfig, saveAudioPromptConfig } from '../services/audioPromptConfigService';
+import { generateCachedMenuSpeech, MENU_SPEECH_PROMPTS } from '../services/elevenLabsGenerationService';
 import { DEFAULT_TTS_CONFIG, getTtsConfig, saveTtsConfig } from '../services/ttsConfigService';
 
 const MODE_OPTIONS = [
@@ -13,6 +15,9 @@ export default function AdminTtsSettings() {
   const [config, setConfig] = useState(DEFAULT_TTS_CONFIG);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savingManualPrompts, setSavingManualPrompts] = useState(false);
+  const [generatingPrompts, setGeneratingPrompts] = useState(false);
+  const [manualPromptUrls, setManualPromptUrls] = useState({});
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -23,8 +28,18 @@ export default function AdminTtsSettings() {
       setLoading(true);
       setError('');
       try {
-        const nextConfig = await getTtsConfig();
-        if (alive) setConfig(nextConfig);
+        const [nextConfig, audioPrompts] = await Promise.all([
+          getTtsConfig(),
+          getAudioPromptConfig(),
+        ]);
+        if (alive) {
+          setConfig(nextConfig);
+          setManualPromptUrls(
+            Object.fromEntries(
+              MENU_SPEECH_PROMPTS.map(prompt => [prompt.id, audioPrompts[prompt.id]?.url || '']),
+            ),
+          );
+        }
       } catch (err) {
         if (alive) setError('TTS ayarları alınamadı: ' + err.message);
       } finally {
@@ -57,6 +72,58 @@ export default function AdminTtsSettings() {
 
   function updateField(field, value) {
     setConfig(current => ({ ...current, [field]: value }));
+  }
+
+  async function handleGenerateMenuPrompts() {
+    setGeneratingPrompts(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const results = [];
+      for (const prompt of MENU_SPEECH_PROMPTS) {
+        const result = await generateCachedMenuSpeech(prompt, {
+          model: config.defaultModel,
+          voiceId: config.defaultVoiceId,
+        });
+        results.push(result.cached ? 'cache' : 'yeni');
+      }
+
+      setSuccessMsg(`Menü sesleri hazırlandı. ${results.filter(result => result === 'yeni').length} yeni üretim, ${results.filter(result => result === 'cache').length} cache kullanımı.`);
+    } catch (err) {
+      setError('Menü sesleri üretilemedi: ' + toFriendlyGenerationError(err));
+    } finally {
+      setGeneratingPrompts(false);
+    }
+  }
+
+  async function handleSaveManualPrompts() {
+    setSavingManualPrompts(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const payload = Object.fromEntries(
+        MENU_SPEECH_PROMPTS.map(prompt => [
+          prompt.id,
+          {
+            provider: 'manual_elevenlabs',
+            url: manualPromptUrls[prompt.id] || '',
+          },
+        ]),
+      );
+
+      await saveAudioPromptConfig(payload);
+      setSuccessMsg('Manuel menü ses URLleri kaydedildi.');
+    } catch (err) {
+      setError('Manuel menü sesleri kaydedilemedi: ' + err.message);
+    } finally {
+      setSavingManualPrompts(false);
+    }
+  }
+
+  function updateManualPromptUrl(promptId, url) {
+    setManualPromptUrls(current => ({ ...current, [promptId]: url }));
   }
 
   return (
@@ -154,6 +221,25 @@ export default function AdminTtsSettings() {
 
           <div className="form-row">
             <div className="form-group">
+              <label>Duyuru başına maksimum karakter</label>
+              <input
+                type="number"
+                min="250"
+                value={config.maxCharsPerAnnouncement}
+                onChange={event => updateField('maxCharsPerAnnouncement', event.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Fallback motoru</label>
+              <input
+                value={config.fallbackEngine}
+                onChange={event => updateField('fallbackEngine', event.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
               <label>Varsayılan model</label>
               <input
                 value={config.defaultModel}
@@ -203,6 +289,15 @@ export default function AdminTtsSettings() {
           <button className="btn-sage btn-auth" type="submit" disabled={saving || loading}>
             {saving ? 'Kaydediliyor...' : 'TTS Ayarlarını Kaydet'}
           </button>
+
+          <button
+            className="btn-outline btn-auth"
+            type="button"
+            disabled={generatingPrompts || loading || saving}
+            onClick={handleGenerateMenuPrompts}
+          >
+            {generatingPrompts ? 'Menü sesleri hazırlanıyor...' : 'Cached Menü Seslerini Üret'}
+          </button>
         </form>
 
         <aside className="card tts-policy-card">
@@ -215,6 +310,62 @@ export default function AdminTtsSettings() {
           </div>
         </aside>
       </div>
+
+      <section className="card manual-prompts-card">
+        <div className="card-header">
+          <div>
+            <h3>Manuel Menü Sesleri</h3>
+            <p className="card-desc">ElevenLabs web arayüzünde MP3 üretip Firebase Storage'a yükleyin, dosya URL'lerini buraya yapıştırın.</p>
+          </div>
+          <span className="badge-light">Free uyumlu</span>
+        </div>
+
+        <div className="manual-prompt-list">
+          {MENU_SPEECH_PROMPTS.map(prompt => (
+            <article className="manual-prompt-row" key={prompt.id}>
+              <div>
+                <strong>{prompt.label}</strong>
+                <p>{prompt.text}</p>
+              </div>
+              <div className="form-group">
+                <label>MP3 URL</label>
+                <input
+                  placeholder="https://firebasestorage.googleapis.com/..."
+                  value={manualPromptUrls[prompt.id] || ''}
+                  onChange={event => updateManualPromptUrl(prompt.id, event.target.value)}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <button
+          className="btn-sage btn-auth"
+          type="button"
+          disabled={savingManualPrompts || loading}
+          onClick={handleSaveManualPrompts}
+        >
+          {savingManualPrompts ? 'Kaydediliyor...' : 'Manuel Ses URLlerini Kaydet'}
+        </button>
+      </section>
     </div>
   );
+}
+
+function toFriendlyGenerationError(error) {
+  const message = error?.message || 'Bilinmeyen hata';
+
+  if (
+    message.includes('Unusual activity detected') ||
+    message.includes('Free Tier usage disabled') ||
+    message.includes('proxy/VPN')
+  ) {
+    return 'ElevenLabs ücretsiz hesap, Firebase Functions gibi cloud/proxy ortamından gelen isteği engelledi. Çözüm: ElevenLabs Starter/Paid plana geçmek veya bu sesleri ElevenLabs arayüzünden manuel üretip cache URL olarak eklemek.';
+  }
+
+  if (message.includes('ElevenLabs üretimi admin ayarlarında kapalı') || message.includes('ElevenLabs uretimi admin ayarlarinda kapali')) {
+    return 'ElevenLabs üretimi kapalı. Toggle açıkken ayarları kaydedip tekrar deneyin.';
+  }
+
+  return message;
 }

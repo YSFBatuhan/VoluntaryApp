@@ -382,7 +382,7 @@ export async function upsertPublicAppConfig() {
     doc(db, 'app_config', 'public'),
     {
       blindMode: {
-        welcomeMessage: 'GTÜ EchoVoices dinleme moduna hoş geldiniz.',
+        welcomeMessage: 'Duyum dinleme moduna hoş geldiniz.',
         defaultSpeechRate: 0.9,
         maxBooksPerPage: 20,
         voiceCommandsEnabled: true,

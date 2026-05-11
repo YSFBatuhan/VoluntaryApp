@@ -4,14 +4,15 @@ import { db } from '../firebase/config';
 export const DEFAULT_TTS_CONFIG = {
   mode: 'hybrid',
   elevenLabsEnabled: false,
-  monthlyCreditLimit: 10000,
+  monthlyCreditLimit: 30000,
   usedCreditsEstimate: 0,
-  maxCharsPerBook: 5000,
-  maxCharsPerRequest: 1200,
+  maxCharsPerBook: 10000,
+  maxCharsPerRequest: 3000,
+  maxCharsPerAnnouncement: 2500,
   requireAdminApproval: true,
   cacheRequired: true,
   defaultVoiceId: '',
-  defaultModel: 'eleven_multilingual_v2',
+  defaultModel: 'eleven_flash_v2_5',
   fallbackEngine: 'web_speech',
 };
 
@@ -35,6 +36,7 @@ export async function saveTtsConfig(config, updatedBy) {
     usedCreditsEstimate: Number(config.usedCreditsEstimate) || 0,
     maxCharsPerBook: Number(config.maxCharsPerBook) || DEFAULT_TTS_CONFIG.maxCharsPerBook,
     maxCharsPerRequest: Number(config.maxCharsPerRequest) || DEFAULT_TTS_CONFIG.maxCharsPerRequest,
+    maxCharsPerAnnouncement: Number(config.maxCharsPerAnnouncement) || DEFAULT_TTS_CONFIG.maxCharsPerAnnouncement,
     updatedBy,
     updatedAt: serverTimestamp(),
   };

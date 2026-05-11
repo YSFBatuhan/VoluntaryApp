@@ -10,6 +10,11 @@ service firebase.storage {
         && request.resource.contentType.matches('audio/(mpeg|mp3|mp4|aac|webm|ogg|wav|x-wav)');
     }
 
+    match /tts_cache/{fileName} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

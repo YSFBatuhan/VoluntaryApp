@@ -35,7 +35,13 @@ export default function Register() {
   return (
     <div className="auth-page">
       <div className="auth-left">
-        <div className="auth-brand">EchoVoices</div>
+        <div className="auth-brand">
+          <span className="brand-mark" aria-hidden="true">D</span>
+          <span>
+            <strong>Duyum</strong>
+            <small>Erişilebilir Sesli Kütüphane</small>
+          </span>
+        </div>
         <h1 className="auth-headline">Topluluğumuza <br /><span>katılın.</span></h1>
         <p className="auth-sub">
           Sesinizi bağışlayın, hayat değiştirin.<br />

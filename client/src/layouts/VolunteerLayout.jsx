@@ -16,8 +16,11 @@ export default function VolunteerLayout({ children }) {
       <div className="main-content">
         <header className="topbar">
           <div>
-            <div className="brand">GTÜ EchoVoices</div>
-            <p className="topbar-context">Gönüllü içerik üretim paneli</p>
+            <div className="brand">
+              <span className="brand-mark brand-mark-small" aria-hidden="true">D</span>
+              <span>Duyum</span>
+            </div>
+            <p className="topbar-context">Erişilebilir sesli kütüphane gönüllü paneli</p>
           </div>
 
           <div className="topbar-right">
