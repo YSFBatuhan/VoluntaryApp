@@ -1330,12 +1330,27 @@ export default function BlindMode() {
 
   if (blindInterfaceMode === 'simple') {
     return (
-      <main className="blind-page blind-page-simple">
+      <main
+        className={isListening ? 'blind-page blind-page-simple listening' : 'blind-page blind-page-simple'}
+        onClick={startListening}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.code === 'Space') {
+            event.preventDefault();
+            startListening();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={isListening ? 'Dinleniyor' : 'Sesli komut vermek için ekranın herhangi bir yerine dokunun'}
+      >
+        <span className="blind-simple-wave wave-one" aria-hidden="true" />
+        <span className="blind-simple-wave wave-two" aria-hidden="true" />
+        <span className="blind-simple-wave wave-three" aria-hidden="true" />
         <button
           type="button"
           className={isListening ? 'blind-simple-mic-button listening' : 'blind-simple-mic-button'}
-          onClick={startListening}
           autoFocus
+          tabIndex={-1}
           aria-label={isListening ? 'Dinleniyor' : 'Sesli komut ver'}
         >
           <span aria-hidden="true">🎙</span>
