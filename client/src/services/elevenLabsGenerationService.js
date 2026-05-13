@@ -8,12 +8,12 @@ export const MENU_SPEECH_PROMPTS = [
   {
     id: 'welcome',
     label: 'Açılış karşılama',
-    text: 'Duyum dinleme moduna hoş geldiniz. Arama yapmak için Komut Ver düğmesine basın.',
+    text: 'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Yardım almak için yardım deyin.',
   },
   {
     id: 'command_help',
     label: 'Komut yardımı',
-    text: 'Kullanabileceğiniz komutlar: Dinle, duraklat, sonraki, önceki, sonraki sayfa, önceki sayfa, beşinci sayfaya git, kaldığım yeri işaretle, kaldığım yerden devam et, kitapları listele, duyurular, geri dön, yardım.',
+    text: 'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurular için duyurular deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.',
   },
   {
     id: 'library_mode',

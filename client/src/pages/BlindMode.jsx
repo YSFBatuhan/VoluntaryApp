@@ -45,10 +45,10 @@ const MOCK_BOOKS = [
 ];
 
 const WELCOME_MESSAGE =
-  'Duyum dinleme moduna hoş geldiniz. Arama yapmak için Komut Ver düğmesine basın.';
+  'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Yardım almak için yardım deyin.';
 
 const COMMAND_HELP_TEXT =
-  'Kullanabileceğiniz komutlar: Dinle, duraklat, sonraki, önceki, sonraki sayfa, önceki sayfa, beşinci sayfaya git, kaldığım yeri işaretle, kaldığım yerden devam et, kitapları listele, duyurular, geri dön, yardım.';
+  'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurular için duyurular deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.';
 
 const BLIND_INTERFACE_KEY = 'echovoices:blind-interface-mode';
 
@@ -109,6 +109,7 @@ export default function BlindMode() {
   const [speechSupported] = useState(() => 'speechSynthesis' in window);
   const [recognitionSupported] = useState(Boolean(recognitionConstructor));
   const recognitionRef = useRef(null);
+  const listeningPulseRef = useRef(null);
   const playbackTokenRef = useRef(0);
   const promptAudioRef = useRef(null);
   const audioPlayerRef = useRef(null);
@@ -160,6 +161,8 @@ export default function BlindMode() {
     const gain = context.createGain();
     const toneMap = {
       focus: { frequency: 420, duration: 0.07, volume: 0.04 },
+      listening: { frequency: 760, duration: 0.09, volume: 0.055 },
+      listeningPulse: { frequency: 520, duration: 0.045, volume: 0.035 },
       success: { frequency: 660, duration: 0.16, volume: 0.05 },
       error: { frequency: 180, duration: 0.22, volume: 0.06 },
     };
@@ -489,6 +492,22 @@ export default function BlindMode() {
 
   function showStatus(message) {
     setStatus(message);
+  }
+
+  function startListeningFeedback() {
+    stopListeningFeedback();
+    vibrate([70, 45, 70]);
+    playTone('listening');
+    listeningPulseRef.current = window.setInterval(() => {
+      vibrate(35);
+      playTone('listeningPulse');
+    }, 1100);
+  }
+
+  function stopListeningFeedback() {
+    if (!listeningPulseRef.current) return;
+    window.clearInterval(listeningPulseRef.current);
+    listeningPulseRef.current = null;
   }
 
   function giveFeedback(type) {
@@ -1175,12 +1194,13 @@ export default function BlindMode() {
 
     recognition.onstart = () => {
       setIsListening(true);
-      giveFeedback('focus');
-      showStatus('Dinliyorum. Komutunuzu söyleyin.');
+      startListeningFeedback();
+      showStatus('Dinliyorum. Komutunuzu söyleyin. Bip sesi duyduğunuz sürece mikrofon açık.');
     };
 
     recognition.onerror = (event) => {
       setIsListening(false);
+      stopListeningFeedback();
       const errorMessage =
         RECOGNITION_ERROR_MESSAGES[event.error] ||
         `Sesli komut çalışmadı. Hata kodu: ${event.error || 'bilinmiyor'}. Yazılı aramayı kullanabilirsiniz.`;
@@ -1191,6 +1211,7 @@ export default function BlindMode() {
 
     recognition.onend = () => {
       setIsListening(false);
+      stopListeningFeedback();
     };
 
     recognition.onresult = (event) => {
@@ -1250,6 +1271,7 @@ export default function BlindMode() {
       playbackTokenRef.current += 1;
       stopPromptAudio();
       stopAudioPlayback({ resetPosition: true });
+      stopListeningFeedback();
       window.speechSynthesis?.cancel();
       recognitionRef.current?.abort();
     };
@@ -1292,10 +1314,18 @@ export default function BlindMode() {
         event.preventDefault();
         if (mode === 'announcements') openLibraryMode();
       }
+
+      if (event.key === 'h' || event.key === 'H') {
+        event.preventDefault();
+        speakMenu(COMMAND_HELP_TEXT, { promptId: MENU_PROMPTS.commandHelp });
+      }
     }
 
     window.addEventListener('keydown', handleKeyboard);
-    return () => window.removeEventListener('keydown', handleKeyboard);
+    return () => {
+      window.removeEventListener('keydown', handleKeyboard);
+      stopListeningFeedback();
+    };
   });
 
   if (blindInterfaceMode === 'simple') {
@@ -1310,7 +1340,9 @@ export default function BlindMode() {
         >
           <span aria-hidden="true">🎙</span>
         </button>
-        <p className="sr-only" aria-live="polite">{status}</p>
+        <p className="blind-simple-status" aria-live="polite">
+          {isListening ? 'Dinleniyor. Komutunuzu söyleyin.' : status}
+        </p>
       </main>
     );
   }
