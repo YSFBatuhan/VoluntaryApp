@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import VolunteerLayout from './layouts/VolunteerLayout';
 
 // Sayfalar
+import EntryChoice from './pages/EntryChoice';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -24,6 +25,7 @@ function App() {
       <AuthProvider>
         <Routes>
           {/* Public rotalar */}
+          <Route path="/" element={<EntryChoice />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/blind" element={<BlindMode />} />
@@ -94,8 +96,7 @@ function App() {
           } />
 
           {/* Varsayılan yönlendirme */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

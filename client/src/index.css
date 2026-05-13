@@ -760,6 +760,169 @@ body {
 }
 
 /* ============================
+   ENTRY CHOICE PAGE
+============================ */
+.entry-page {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: stretch;
+  background: #050704;
+  color: #ffffff;
+}
+
+.entry-hero {
+  padding: clamp(1.5rem, 5vw, 4rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.15rem;
+}
+
+.entry-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.entry-brand strong,
+.entry-brand small {
+  display: block;
+}
+
+.entry-brand strong {
+  font-size: 1.4rem;
+  font-weight: 900;
+}
+
+.entry-brand small {
+  color: #c7d7bd;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.entry-kicker {
+  color: #fff04d;
+  font-weight: 900;
+  margin: 0;
+}
+
+.entry-page h1 {
+  color: #ffffff;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 0.98;
+  margin: 0;
+  max-width: 760px;
+}
+
+.entry-status {
+  color: #fff9b8;
+  font-size: clamp(1.1rem, 2vw, 1.45rem);
+  line-height: 1.55;
+  max-width: 720px;
+  margin: 0;
+}
+
+.entry-voice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.entry-voice-button,
+.entry-help-button,
+.entry-choice-card {
+  border-radius: 8px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.entry-voice-button,
+.entry-help-button {
+  min-height: 58px;
+  padding: 0 1.1rem;
+  border: 3px solid #fff04d;
+  font-weight: 900;
+  font-size: 1rem;
+}
+
+.entry-voice-button {
+  background: #fff04d;
+  color: #050704;
+}
+
+.entry-help-button {
+  background: transparent;
+  color: #ffffff;
+}
+
+.entry-choice-grid {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+}
+
+.entry-choice-card {
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  padding: clamp(1.5rem, 5vw, 4rem);
+  color: #ffffff;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 0.75rem;
+  text-align: left;
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.entry-choice-card:hover,
+.entry-choice-card:focus-visible {
+  filter: brightness(1.08);
+}
+
+.entry-choice-card:focus-visible,
+.entry-voice-button:focus-visible,
+.entry-help-button:focus-visible {
+  outline: 6px solid #ffffff;
+  outline-offset: -6px;
+}
+
+.entry-choice-card.listener {
+  background: #fff04d;
+  color: #050704;
+}
+
+.entry-choice-card.volunteer {
+  background: #ffffff;
+  color: #223229;
+}
+
+.entry-choice-card span {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 4, 0.12);
+  font-size: 1.45rem;
+  font-weight: 900;
+}
+
+.entry-choice-card strong {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1;
+}
+
+.entry-choice-card small {
+  max-width: 520px;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.5;
+  font-weight: 800;
+}
+
+/* ============================
    BOOK MANAGEMENT PAGE
 ============================ */
 .tab-bar {
@@ -2671,6 +2834,25 @@ textarea {
    RESPONSIVE AUTH
 ============================ */
 @media (max-width: 920px) {
+  .entry-page {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-hero {
+    min-height: 48dvh;
+  }
+
+  .entry-choice-grid {
+    grid-template-rows: none;
+    grid-template-columns: 1fr;
+  }
+
+  .entry-choice-card {
+    min-height: 220px;
+    border-left: 0;
+    border-top: 1px solid rgba(5, 7, 4, 0.14);
+  }
+
   .auth-page {
     display: block;
     min-height: 100dvh;
@@ -2709,6 +2891,48 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .entry-hero {
+    padding: 1.25rem;
+    min-height: 52dvh;
+  }
+
+  .entry-brand {
+    margin-bottom: 0.25rem;
+  }
+
+  .entry-page h1 {
+    font-size: 2.25rem;
+  }
+
+  .entry-status {
+    font-size: 1rem;
+  }
+
+  .entry-voice-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .entry-voice-button,
+  .entry-help-button {
+    width: 100%;
+  }
+
+  .entry-choice-card {
+    min-height: 190px;
+    padding: 1.25rem;
+  }
+
+  .entry-choice-card span {
+    width: 42px;
+    height: 42px;
+    font-size: 1.15rem;
+  }
+
+  .entry-choice-card strong {
+    font-size: 1.8rem;
+  }
+
   .auth-left {
     padding: 1.25rem;
   }
