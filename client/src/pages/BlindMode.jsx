@@ -67,6 +67,16 @@ const RECOGNITION_ERROR_MESSAGES = {
   language: 'Türkçe ses tanıma bu tarayıcıda kullanılamıyor olabilir.',
 };
 
+const RECOGNITION_ERROR_PROMPTS = {
+  'not-allowed': MENU_PROMPTS.microphonePermissionDenied,
+  'service-not-allowed': MENU_PROMPTS.speechServiceUnavailable,
+  'audio-capture': MENU_PROMPTS.microphoneUnavailable,
+  network: MENU_PROMPTS.speechRecognitionNetworkError,
+  'no-speech': MENU_PROMPTS.noSpeechDetected,
+  aborted: MENU_PROMPTS.speechCommandAborted,
+  language: MENU_PROMPTS.speechRecognitionLanguageUnavailable,
+};
+
 function getReadableLanguage(language) {
   return getSpeechLanguage(language) === 'en-US' ? 'İngilizce' : 'Türkçe';
 }
@@ -1174,8 +1184,9 @@ export default function BlindMode() {
       const errorMessage =
         RECOGNITION_ERROR_MESSAGES[event.error] ||
         `Sesli komut çalışmadı. Hata kodu: ${event.error || 'bilinmiyor'}. Yazılı aramayı kullanabilirsiniz.`;
+      const promptId = RECOGNITION_ERROR_PROMPTS[event.error];
       giveFeedback('error');
-      speakMenu(errorMessage);
+      speakMenu(errorMessage, promptId ? { promptId } : {});
     };
 
     recognition.onend = () => {

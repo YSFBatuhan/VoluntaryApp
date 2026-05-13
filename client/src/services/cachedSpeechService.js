@@ -31,6 +31,13 @@ export const MENU_PROMPTS = {
   backwardTen: 'backward_ten',
   playbackPaused: 'playback_paused',
   audioStopped: 'audio_stopped',
+  microphonePermissionDenied: 'microphone_permission_denied',
+  speechServiceUnavailable: 'speech_service_unavailable',
+  microphoneUnavailable: 'microphone_unavailable',
+  speechRecognitionNetworkError: 'speech_recognition_network_error',
+  noSpeechDetected: 'no_speech_detected',
+  speechCommandAborted: 'speech_command_aborted',
+  speechRecognitionLanguageUnavailable: 'speech_recognition_language_unavailable',
 };
 
 // ElevenLabs ile uretilen sabit menu sesleri buraya veya Firestore app_config'e baglanacak.
@@ -65,6 +72,13 @@ const CACHED_MENU_AUDIO_URLS = {
   [MENU_PROMPTS.backwardTen]: '',
   [MENU_PROMPTS.playbackPaused]: '',
   [MENU_PROMPTS.audioStopped]: '',
+  [MENU_PROMPTS.microphonePermissionDenied]: '',
+  [MENU_PROMPTS.speechServiceUnavailable]: '',
+  [MENU_PROMPTS.microphoneUnavailable]: '',
+  [MENU_PROMPTS.speechRecognitionNetworkError]: '',
+  [MENU_PROMPTS.noSpeechDetected]: '',
+  [MENU_PROMPTS.speechCommandAborted]: '',
+  [MENU_PROMPTS.speechRecognitionLanguageUnavailable]: '',
 };
 
 let runtimeMenuAudioUrls = {};

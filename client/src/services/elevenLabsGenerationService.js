@@ -13,7 +13,7 @@ export const MENU_SPEECH_PROMPTS = [
   {
     id: 'command_help',
     label: 'Komut yardımı',
-    text: 'Kullanabileceğiniz komutlar: Dinle, duraklat, sonraki, önceki, sonraki sayfa, önceki sayfa, kaldığım yeri işaretle, kaldığım yerden devam et, kitapları listele, duyurular, geri dön ve yardım.',
+    text: 'Kullanabileceğiniz komutlar: Dinle, duraklat, sonraki, önceki, sonraki sayfa, önceki sayfa, beşinci sayfaya git, kaldığım yeri işaretle, kaldığım yerden devam et, kitapları listele, duyurular, geri dön, yardım.',
   },
   {
     id: 'library_mode',
@@ -149,6 +149,41 @@ export const MENU_SPEECH_PROMPTS = [
     id: 'audio_stopped',
     label: 'Ses durduruldu',
     text: 'Ses durduruldu.',
+  },
+  {
+    id: 'microphone_permission_denied',
+    label: 'Mikrofon izni yok',
+    text: 'Mikrofon izni verilmedi. Tarayıcı adres çubuğundaki mikrofon iznini kontrol edin.',
+  },
+  {
+    id: 'speech_service_unavailable',
+    label: 'Ses tanıma servisi yok',
+    text: 'Tarayıcının ses tanıma servisi bu ortamda çalışmıyor. Yazılı aramayı kullanabilirsiniz.',
+  },
+  {
+    id: 'microphone_unavailable',
+    label: 'Mikrofon bulunamadı',
+    text: 'Mikrofon bulunamadı veya tarayıcı mikrofona erişemedi.',
+  },
+  {
+    id: 'speech_recognition_network_error',
+    label: 'Ses tanıma ağ hatası',
+    text: 'Ses tanıma servisine bağlanılamadı. Bu özellik internet veya tarayıcı servisi gerektirebilir.',
+  },
+  {
+    id: 'no_speech_detected',
+    label: 'Ses algılanamadı',
+    text: 'Ses algılanamadı. Mikrofona biraz daha yakın konuşup tekrar deneyin.',
+  },
+  {
+    id: 'speech_command_aborted',
+    label: 'Sesli komut iptal edildi',
+    text: 'Sesli komut iptal edildi.',
+  },
+  {
+    id: 'speech_recognition_language_unavailable',
+    label: 'Türkçe ses tanıma yok',
+    text: 'Türkçe ses tanıma bu tarayıcıda kullanılamıyor olabilir.',
   },
 ];
 

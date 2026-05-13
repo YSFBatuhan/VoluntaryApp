@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getAudioPromptConfig, saveAudioPromptConfig } from '../services/audioPromptConfigService';
 import { generateCachedMenuSpeech, MENU_SPEECH_PROMPTS } from '../services/elevenLabsGenerationService';
@@ -20,6 +20,14 @@ export default function AdminTtsSettings() {
   const [manualPromptUrls, setManualPromptUrls] = useState({});
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const manualPromptStats = useMemo(() => {
+    const missing = MENU_SPEECH_PROMPTS.filter(prompt => !manualPromptUrls[prompt.id]?.trim());
+    return {
+      missing,
+      readyCount: MENU_SPEECH_PROMPTS.length - missing.length,
+      totalCount: MENU_SPEECH_PROMPTS.length,
+    };
+  }, [manualPromptUrls]);
 
   useEffect(() => {
     let alive = true;
@@ -317,14 +325,23 @@ export default function AdminTtsSettings() {
             <h3>Manuel Menü Sesleri</h3>
             <p className="card-desc">ElevenLabs web arayüzünde MP3 üretip Firebase Storage'a yükleyin, dosya URL'lerini buraya yapıştırın.</p>
           </div>
-          <span className="badge-light">Free uyumlu</span>
+          <span className="badge-light">
+            {manualPromptStats.readyCount}/{manualPromptStats.totalCount} hazır
+          </span>
         </div>
+
+        {manualPromptStats.missing.length > 0 && (
+          <p className="card-desc">
+            Eksik MP3: {manualPromptStats.missing.map(prompt => `${prompt.id}.mp3`).join(', ')}
+          </p>
+        )}
 
         <div className="manual-prompt-list">
           {MENU_SPEECH_PROMPTS.map(prompt => (
             <article className="manual-prompt-row" key={prompt.id}>
               <div>
                 <strong>{prompt.label}</strong>
+                <span className="badge-light">{prompt.id}.mp3</span>
                 <p>{prompt.text}</p>
               </div>
               <div className="form-group">
