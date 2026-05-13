@@ -1241,15 +1241,20 @@ export default function BlindMode() {
   useEffect(() => {
     if (!cachedSpeechReady) return;
 
-    speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome });
+    const welcomeTimer = window.setTimeout(() => {
+      speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome });
+    }, 0);
 
     return () => {
+      window.clearTimeout(welcomeTimer);
       playbackTokenRef.current += 1;
       stopPromptAudio();
       stopAudioPlayback({ resetPosition: true });
       window.speechSynthesis?.cancel();
       recognitionRef.current?.abort();
     };
+    // Welcome prompt should run once after cached prompt configuration is ready.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cachedSpeechReady, speechSupported]);
 
   useEffect(() => {
