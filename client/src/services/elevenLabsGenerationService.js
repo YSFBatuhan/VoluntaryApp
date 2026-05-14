@@ -210,6 +210,7 @@ export async function generateCachedDynamicSpeech({
   voiceId,
   announcementId = '',
   announcementVariant = 'summary',
+  publicPromptId = '',
 } = {}) {
   const result = await generateCachedSpeechCallable({
     text,
@@ -218,6 +219,7 @@ export async function generateCachedDynamicSpeech({
     voiceId,
     announcementId,
     announcementVariant,
+    publicPromptId,
   });
 
   return result.data;

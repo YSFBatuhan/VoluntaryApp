@@ -6,6 +6,7 @@ import {
   createCachedSpeechAudio,
   getCachedAnnouncementAudioUrl,
   getCachedMenuAudioUrl,
+  loadAnnouncementAudioCache,
   loadCachedSpeechConfig,
   MENU_PROMPTS,
 } from '../services/cachedSpeechService';
@@ -48,6 +49,8 @@ const MOCK_BOOKS = [
 const WELCOME_MESSAGE =
   'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Yardım almak için yardım deyin.';
 
+const IDLE_REMINDER_DELAY_MS = 45000;
+
 const COMMAND_HELP_TEXT =
   'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurular için duyurular deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.';
 
@@ -88,6 +91,7 @@ export default function BlindMode() {
   const [status, setStatus] = useState(WELCOME_MESSAGE);
   const [books, setBooks] = useState(MOCK_BOOKS);
   const [librarySource, setLibrarySource] = useState('Örnek kütüphane');
+  const [publishedLibraryLoaded, setPublishedLibraryLoaded] = useState(false);
   const [mode, setMode] = useState('library');
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState(null);
@@ -99,6 +103,7 @@ export default function BlindMode() {
   const [isListening, setIsListening] = useState(false);
   const [lastCommand, setLastCommand] = useState('');
   const [cachedSpeechReady, setCachedSpeechReady] = useState(false);
+  const [isWelcomeActive, setIsWelcomeActive] = useState(true);
   const [storedBlindInterfaceMode] = useState(() =>
     localStorage.getItem(BLIND_INTERFACE_KEY) || 'simple',
   );
@@ -118,6 +123,11 @@ export default function BlindMode() {
   const currentAudioBookIdRef = useRef('');
   const currentAudioChapterIdRef = useRef('');
   const lastProgressSaveRef = useRef(0);
+  const welcomeCompletedRef = useRef(false);
+  const pendingWelcomeActionRef = useRef(null);
+  const idleReminderTimerRef = useRef(null);
+  const isPlayingRef = useRef(false);
+  const isListeningRef = useRef(false);
 
   const visibleBooks = useMemo(() => {
     if (!query.trim()) return books;
@@ -191,7 +201,11 @@ export default function BlindMode() {
     promptAudioRef.current = null;
   }
 
-  function playCachedSpeech(url, fallback) {
+  function finishSpeechCallback(callback) {
+    if (typeof callback === 'function') callback();
+  }
+
+  function playCachedSpeech(url, fallback, options = {}) {
     stopPromptAudio();
     window.speechSynthesis?.cancel();
 
@@ -199,6 +213,7 @@ export default function BlindMode() {
     promptAudioRef.current = audio;
     audio.onended = () => {
       if (promptAudioRef.current === audio) promptAudioRef.current = null;
+      finishSpeechCallback(options.onEnd);
     };
     audio.onerror = () => {
       if (promptAudioRef.current === audio) promptAudioRef.current = null;
@@ -222,12 +237,13 @@ export default function BlindMode() {
         language,
         announcementId: options.announcementId,
         announcementVariant: options.announcementVariant,
+        publicPromptId: options.publicPromptId,
       });
 
       if (options.requestToken !== speechRequestTokenRef.current) return;
 
       if (result?.audioUrl) {
-        playCachedSpeech(result.audioUrl, fallback);
+        playCachedSpeech(result.audioUrl, fallback, options);
         return;
       }
     } catch {
@@ -244,16 +260,21 @@ export default function BlindMode() {
     speechRequestTokenRef.current = requestToken;
 
     const fallback = () => {
-      if (!speechSupported) return;
+      if (!speechSupported) {
+        finishSpeechCallback(options.onEnd);
+        return;
+      }
 
       stopPromptAudio();
       window.speechSynthesis.cancel();
       const utterance = createUtterance(message, language);
+      utterance.onend = () => finishSpeechCallback(options.onEnd);
+      utterance.onerror = () => finishSpeechCallback(options.onEnd);
       window.speechSynthesis.speak(utterance);
     };
 
     if (options.cachedAudioUrl) {
-      playCachedSpeech(options.cachedAudioUrl, fallback);
+      playCachedSpeech(options.cachedAudioUrl, fallback, options);
       return;
     }
 
@@ -264,23 +285,110 @@ export default function BlindMode() {
     setStatus(message);
     const requestToken = speechRequestTokenRef.current + 1;
     speechRequestTokenRef.current = requestToken;
+    const publicPromptId =
+      options.publicPromptId
+      || (options.promptId ? `blind_menu_${sanitizePromptKey(options.promptId)}` : createMenuPromptId(message));
 
     const fallback = () => {
-      if (!speechSupported) return;
+      if (!speechSupported) {
+        finishSpeechCallback(options.onEnd);
+        return;
+      }
 
       stopPromptAudio();
       window.speechSynthesis.cancel();
       const utterance = createMenuUtterance(message);
+      utterance.onend = () => finishSpeechCallback(options.onEnd);
+      utterance.onerror = () => finishSpeechCallback(options.onEnd);
       window.speechSynthesis.speak(utterance);
     };
 
-    const cachedAudioUrl = options.cachedAudioUrl || getCachedMenuAudioUrl(options.promptId);
+    const cachedAudioUrl = options.cachedAudioUrl
+      || getCachedMenuAudioUrl(options.promptId)
+      || getCachedMenuAudioUrl(publicPromptId);
     if (cachedAudioUrl) {
-      playCachedSpeech(cachedAudioUrl, fallback);
+      playCachedSpeech(cachedAudioUrl, fallback, options);
       return;
     }
 
-    playGeneratedSpeech(message, 'tr-TR', fallback, { ...options, requestToken });
+    playGeneratedSpeech(message, 'tr-TR', fallback, {
+      allowDynamicSpeech: options.allowDynamicSpeech ?? true,
+      ...options,
+      publicPromptId,
+      requestToken,
+    });
+  }
+
+  function createMenuPromptId(message) {
+    const normalized = normalizeText(message).slice(0, 120);
+    const readablePart = sanitizePromptKey(normalized).slice(0, 48) || 'prompt';
+    return `blind_menu_${readablePart}_${hashPromptText(message)}`;
+  }
+
+  function sanitizePromptKey(value = '') {
+    return normalizeText(value)
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 80) || 'prompt';
+  }
+
+  function hashPromptText(value = '') {
+    let hash = 2166136261;
+    const text = String(value);
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(36);
+  }
+
+  function clearIdleReminder() {
+    if (!idleReminderTimerRef.current) return;
+    window.clearTimeout(idleReminderTimerRef.current);
+    idleReminderTimerRef.current = null;
+  }
+
+  function scheduleIdleReminder() {
+    clearIdleReminder();
+    if (!welcomeCompletedRef.current || isPlayingRef.current || isListeningRef.current) return;
+
+    idleReminderTimerRef.current = window.setTimeout(() => {
+      if (!welcomeCompletedRef.current || isPlayingRef.current || isListeningRef.current) return;
+      speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome });
+      scheduleIdleReminder();
+    }, IDLE_REMINDER_DELAY_MS);
+  }
+
+  function registerUserActivity() {
+    if (welcomeCompletedRef.current) scheduleIdleReminder();
+  }
+
+  function runAfterWelcome(action) {
+    if (welcomeCompletedRef.current) {
+      registerUserActivity();
+      return true;
+    }
+
+    pendingWelcomeActionRef.current = action;
+    setStatus('Hoş geldiniz mesajı tamamlanıyor. Ardından komut verebilirsiniz.');
+    return false;
+  }
+
+  function finishWelcome() {
+    if (welcomeCompletedRef.current) return;
+
+    welcomeCompletedRef.current = true;
+    setIsWelcomeActive(false);
+    scheduleIdleReminder();
+
+    const pendingAction = pendingWelcomeActionRef.current;
+    pendingWelcomeActionRef.current = null;
+    if (pendingAction) {
+      window.setTimeout(() => {
+        registerUserActivity();
+        pendingAction();
+      }, 150);
+    }
   }
 
   function getBookDuration(book) {
@@ -290,7 +398,8 @@ export default function BlindMode() {
     return 'süre bilgisi yok';
   }
 
-  function getBookmarkKey(bookId = selectedBook.id) {
+  function getBookmarkKey(bookId = selectedBook?.id) {
+    if (!bookId) return 'echovoices:bookmark:unknown';
     return `echovoices:bookmark:${bookId}`;
   }
 
@@ -304,7 +413,7 @@ export default function BlindMode() {
     audio.onerror = null;
   }
 
-  function readLocalBookmark(bookId = selectedBook.id) {
+  function readLocalBookmark(bookId = selectedBook?.id) {
     try {
       const rawBookmark = localStorage.getItem(getBookmarkKey(bookId));
       return rawBookmark ? JSON.parse(rawBookmark) : null;
@@ -420,6 +529,7 @@ export default function BlindMode() {
   }
 
   function maybeSaveAudioProgress(book, chapterId, positionSec, { force = false } = {}) {
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     if (!force && now - lastProgressSaveRef.current < 15000) return;
 
@@ -432,6 +542,12 @@ export default function BlindMode() {
   }
 
   async function saveBookmark(chunkIndex = currentChunkIndex) {
+    if (!selectedBook) {
+      giveFeedback('error');
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      return;
+    }
+
     if (selectedBook.readingMode !== 'tts_text') {
       const audio = audioPlayerRef.current;
       await persistProgress({
@@ -470,6 +586,12 @@ export default function BlindMode() {
   }
 
   async function speakTextBook(book, startIndex = 0) {
+    if (!book) {
+      giveFeedback('error');
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      return;
+    }
+
     if (!speechSupported) {
       giveFeedback('error');
       speakMenu('Bu tarayıcı metin seslendirmeyi desteklemiyor.', {
@@ -564,6 +686,9 @@ export default function BlindMode() {
   }
 
   function selectBook(book) {
+    if (!runAfterWelcome(() => selectBook(book))) return;
+
+    setQuery('');
     setMode('library');
     setSelectedBook(book);
     setIsPlaying(false);
@@ -578,6 +703,12 @@ export default function BlindMode() {
   }
 
   async function goToTextChunk(targetIndex, autoPlay = false) {
+    if (!selectedBook) {
+      giveFeedback('error');
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      return;
+    }
+
     if (selectedBook.readingMode !== 'tts_text') {
       giveFeedback('error');
       speakMenu('Sayfa gezinme sadece PDF metin kitapları için kullanılır.', {
@@ -615,6 +746,12 @@ export default function BlindMode() {
   }
 
   async function goToPage(pageNumber, autoPlay = false) {
+    if (!selectedBook) {
+      giveFeedback('error');
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      return;
+    }
+
     if (selectedBook.readingMode !== 'tts_text') {
       giveFeedback('error');
       speakMenu('Sayfa numarası komutu sadece PDF metin kitapları için kullanılır.', {
@@ -643,6 +780,12 @@ export default function BlindMode() {
   }
 
   async function resumeFromBookmark() {
+    if (!selectedBook) {
+      giveFeedback('error');
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      return;
+    }
+
     const savedBookmark = await loadProgressForBook(selectedBook);
     if (!savedBookmark) {
       giveFeedback('error');
@@ -662,7 +805,7 @@ export default function BlindMode() {
   function selectBookByIndex(nextIndex) {
     if (!books.length) {
       giveFeedback('error');
-      speakMenu('Listelenecek kitap bulunamadı.', { promptId: MENU_PROMPTS.noBooks });
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
       return;
     }
 
@@ -671,10 +814,14 @@ export default function BlindMode() {
   }
 
   function getSelectedBookIndex() {
+    if (!selectedBook) return 0;
     return Math.max(0, books.findIndex((book) => book.id === selectedBook.id));
   }
 
   function openAnnouncementsMode() {
+    if (!runAfterWelcome(openAnnouncementsMode)) return;
+
+    setQuery('');
     setMode('announcements');
     setSelectedDepartment(null);
     setSelectedAnnouncement(null);
@@ -689,6 +836,9 @@ export default function BlindMode() {
   }
 
   function openLibraryMode() {
+    if (!runAfterWelcome(openLibraryMode)) return;
+
+    setQuery('');
     setMode('library');
     setSelectedDepartment(null);
     setSelectedAnnouncement(null);
@@ -698,6 +848,9 @@ export default function BlindMode() {
   }
 
   function selectDepartment(department) {
+    if (!runAfterWelcome(() => selectDepartment(department))) return;
+
+    setQuery('');
     setSelectedDepartment(department);
     setSelectedAnnouncement(null);
     giveFeedback('success');
@@ -706,11 +859,17 @@ export default function BlindMode() {
     );
 
     if (!announcements.length) {
-      speakMenu(`${department.name} duyuruları açıldı. Henüz duyuru bulunamadı.`);
+      speakMenu(`${department.name} duyuruları açıldı. Henüz duyuru bulunamadı.`, {
+        allowDynamicSpeech: true,
+        publicPromptId: `blind_department_${department.id}_empty`,
+      });
       return;
     }
 
-    speakMenu(`${department.name} duyuruları açıldı. ${announcements.length} duyuru bulundu. ${formatAnnouncementTitles(announcements)} Bir duyuruya girmek için birinciyi aç, ikinciyi aç veya duyuru başlığından bir kelime söyleyin.`);
+    speakMenu(`${department.name} duyuruları açıldı. ${announcements.length} duyuru bulundu. ${formatAnnouncementTitles(announcements)} Bir duyuruya girmek için birinciyi aç, ikinciyi aç veya duyuru başlığından bir kelime söyleyin.`, {
+      allowDynamicSpeech: true,
+      publicPromptId: `blind_department_${department.id}_list`,
+    });
   }
 
   function selectDepartmentByIndex(nextIndex) {
@@ -724,15 +883,47 @@ export default function BlindMode() {
   }
 
   function selectAnnouncement(announcement, readFullDetail = false) {
+    if (!runAfterWelcome(() => selectAnnouncement(announcement, readFullDetail))) return;
+
+    setQuery('');
     setSelectedAnnouncement(announcement);
     giveFeedback('success');
-    const detailText = readFullDetail
-      ? announcement.bodyText || announcement.summary
-      : announcement.summary;
-    speak(`${announcement.title}. ${detailText}`, announcement.language || 'tr-TR', {
+    const detailText = getAnnouncementSpeechText(announcement, { readFullDetail });
+    speak(detailText, announcement.language || 'tr-TR', {
       cachedAudioUrl: getCachedAnnouncementAudioUrl(announcement, { readFullDetail }),
+      allowDynamicSpeech: true,
+      announcementId: announcement.id,
       announcementVariant: readFullDetail ? 'detail' : 'summary',
     });
+  }
+
+  function getAnnouncementSpeechText(announcement, { readFullDetail = false } = {}) {
+    const content = getAnnouncementContent(announcement, { readFullDetail });
+    if (content) return `${announcement.title}. ${content}`;
+
+    if (announcement.detailUrl) {
+      return `${announcement.title}. Bu duyuru için okunabilir detay metni alınamadı. Kaynak bağlantısı ekranda mevcut.`;
+    }
+
+    return `${announcement.title}. Bu duyuru için okunabilir içerik bulunamadı.`;
+  }
+
+  function getAnnouncementContent(announcement, { readFullDetail = false } = {}) {
+    const candidates = readFullDetail
+      ? [announcement.bodyText, announcement.summary]
+      : [announcement.summary, announcement.bodyText];
+
+    return candidates
+      .map((value) => String(value || '').trim())
+      .find((value) => value && !isMissingAnnouncementContent(value)) || '';
+  }
+
+  function isMissingAnnouncementContent(value) {
+    const normalized = normalizeText(value);
+    return normalized.includes('bu duyuru icin kaynak sayfada ayri detay metni bulunamadi')
+      || normalized.includes('duyuru metnine ulasmak icin tiklayiniz')
+      || normalized.includes('duyurusuna ulasmak icin tiklayiniz')
+      || normalized.includes('detayli bilgiye ulasmak icin tiklayiniz');
   }
 
   function formatAnnouncementTitles(announcements, maxCount = 6) {
@@ -773,24 +964,87 @@ export default function BlindMode() {
 
   function findDepartmentByCommand(command) {
     const normalizedCommand = normalizeText(command);
-    return GTU_DEPARTMENTS.find((department) => {
+    const exactDepartment = GTU_DEPARTMENTS.find((department) => {
       const searchableText = normalizeText(`${department.name} ${department.keywords.join(' ')}`);
       return searchableText.includes(normalizedCommand) || normalizedCommand.includes(normalizeText(department.name));
     });
+    if (exactDepartment) return exactDepartment;
+
+    const scoredDepartments = GTU_DEPARTMENTS
+      .map((department) => ({
+        department,
+        score: getFuzzyMatchScore(
+          normalizedCommand,
+          normalizeText(`${department.name} ${department.keywords.join(' ')}`),
+        ),
+      }))
+      .filter(({ score }) => score >= 3)
+      .sort((a, b) => b.score - a.score);
+
+    return scoredDepartments[0]?.department || null;
+  }
+
+  function isGenericAnnouncementsCommand(normalizedCommand) {
+    return ['duyuru', 'duyurular', 'gtu duyurulari', 'gtu duyurulari'].includes(normalizedCommand);
+  }
+
+  function getFuzzyMatchScore(normalizedCommand, normalizedTarget) {
+    const commandWords = normalizedCommand.split(' ').filter((word) => word.length >= 3);
+    const targetWords = normalizedTarget.split(' ').filter((word) => word.length >= 3);
+
+    return commandWords.reduce((score, word) => {
+      const matched = targetWords.some((targetWord) => {
+        if (targetWord === word) return true;
+        if (targetWord.startsWith(word) || word.startsWith(targetWord)) return true;
+        return Math.max(word.length, targetWord.length) >= 5
+          && getEditDistance(word, targetWord) <= 2;
+      });
+
+      return matched ? score + Math.min(3, word.length) : score;
+    }, 0);
+  }
+
+  function getEditDistance(first, second) {
+    const rows = Array.from({ length: first.length + 1 }, (_, index) => [index]);
+
+    for (let column = 1; column <= second.length; column += 1) {
+      rows[0][column] = column;
+    }
+
+    for (let row = 1; row <= first.length; row += 1) {
+      for (let column = 1; column <= second.length; column += 1) {
+        const cost = first[row - 1] === second[column - 1] ? 0 : 1;
+        rows[row][column] = Math.min(
+          rows[row - 1][column] + 1,
+          rows[row][column - 1] + 1,
+          rows[row - 1][column - 1] + cost,
+        );
+      }
+    }
+
+    return rows[first.length][second.length];
   }
 
   function listBooks() {
-    const firstBooks = visibleBooks;
+    const firstBooks = visibleBooks.length || !query.trim() ? visibleBooks : books;
     if (!firstBooks.length) {
       giveFeedback('error');
-      speakMenu('Listelenecek kitap bulunamadı.', { promptId: MENU_PROMPTS.noBooks });
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
       return;
     }
 
     const text = firstBooks
       .map((book, index) => `${index + 1}. ${formatBookForMenu(book)}`)
       .join('. ');
-    speakMenu(`Kitaplıkta ${visibleBooks.length} kitap var. İlk kitaplar: ${text}. Açmak için birinciyi aç, ikinciyi aç veya kitap adını söyleyin.`);
+    speakMenu(`Kitaplıkta ${firstBooks.length} kitap var. İlk kitaplar: ${text}. Açmak için birinciyi aç, ikinciyi aç veya kitap adını söyleyin.`);
+  }
+
+  function getNoBooksMessage() {
+    if (publishedLibraryLoaded) {
+      return 'Yayınlanmış kitap bulunamadı. Yüklenen ses dosyaları veya PDF kitaplar admin onayından sonra dinleyici kitaplığında görünür.';
+    }
+
+    return 'Kitaplık henüz yüklenemedi. Birkaç saniye sonra tekrar deneyin.';
   }
 
   function formatBookForMenu(book) {
@@ -802,7 +1056,10 @@ export default function BlindMode() {
   }
 
   function listDepartments() {
-    speakMenu(`Bölümler: ${formatDepartmentTitles(visibleDepartments)} Bölüm adı söyleyebilir, 1 diyebilir veya birinciyi aç diyebilirsiniz.`);
+    speakMenu(`Bölümler: ${formatDepartmentTitles(visibleDepartments)} Bölüm adı söyleyebilir, 1 diyebilir veya birinciyi aç diyebilirsiniz.`, {
+      allowDynamicSpeech: true,
+      publicPromptId: 'blind_department_list',
+    });
   }
 
   function formatDepartmentTitles(departments, maxCount = departments.length) {
@@ -820,14 +1077,20 @@ export default function BlindMode() {
 
     if (!departmentAnnouncements.length) {
       giveFeedback('error');
-      speakMenu(`${selectedDepartment.name} için duyuru bulunamadı.`);
+      speakMenu(`${selectedDepartment.name} için duyuru bulunamadı.`, {
+        allowDynamicSpeech: true,
+        publicPromptId: `blind_announcement_${selectedDepartment.id}_empty`,
+      });
       return;
     }
 
     const text = departmentAnnouncements
       .map((announcement, index) => `${index + 1}. ${announcement.title}`)
       .join('. ');
-    speakMenu(`${selectedDepartment.name} duyuruları: ${text}. Bir duyurunun detayını okumak için numarasını veya başlığından bir kelime söyleyin.`);
+    speakMenu(`${selectedDepartment.name} duyuruları: ${text}. Bir duyurunun detayını okumak için numarasını veya başlığından bir kelime söyleyin.`, {
+      allowDynamicSpeech: true,
+      publicPromptId: `blind_announcement_${selectedDepartment.id}_list`,
+    });
   }
 
   function readSelectedAnnouncementDetail() {
@@ -993,6 +1256,8 @@ export default function BlindMode() {
   }
 
   function handleCommand(rawCommand = query) {
+    if (!runAfterWelcome(() => handleCommand(rawCommand))) return;
+
     const trimmedQuery = rawCommand.trim();
 
     if (!trimmedQuery) {
@@ -1160,6 +1425,13 @@ export default function BlindMode() {
     }
 
     if (command.intent === 'announcements') {
+      const requestedDepartment = findDepartmentByCommand(trimmedQuery);
+      if (requestedDepartment && !isGenericAnnouncementsCommand(normalizedQuery)) {
+        setMode('announcements');
+        selectDepartment(requestedDepartment);
+        return;
+      }
+
       openAnnouncementsMode();
       return;
     }
@@ -1207,6 +1479,14 @@ export default function BlindMode() {
   }
 
   function togglePlayback() {
+    if (!runAfterWelcome(togglePlayback)) return;
+
+    if (!selectedBook) {
+      giveFeedback('error');
+      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      return;
+    }
+
     const nextPlaying = !isPlaying;
     giveFeedback('success');
 
@@ -1243,6 +1523,8 @@ export default function BlindMode() {
   }
 
   function startListening() {
+    if (!runAfterWelcome(startListening)) return;
+
     if (!recognitionSupported) {
       giveFeedback('error');
       speakMenu('Bu tarayıcı sesli komutu desteklemiyor. Arama kutusunu kullanabilirsiniz.', {
@@ -1298,7 +1580,10 @@ export default function BlindMode() {
 
     async function loadLibrary() {
       try {
-        await loadCachedSpeechConfig();
+        await Promise.all([
+          loadCachedSpeechConfig(),
+          loadAnnouncementAudioCache(),
+        ]);
       } catch {
         // Cached ElevenLabs prompts are optional; Web Speech remains the fallback.
       } finally {
@@ -1307,7 +1592,15 @@ export default function BlindMode() {
 
       try {
         const publishedBooks = await getPublishedBooks();
-        if (cancelled || !publishedBooks.length) return;
+        if (cancelled) return;
+
+        setPublishedLibraryLoaded(true);
+        if (!publishedBooks.length) {
+          setBooks([]);
+          setSelectedBook(null);
+          setLibrarySource('Yayınlanmış kitap yok');
+          return;
+        }
 
         setBooks(publishedBooks);
         setSelectedBook(publishedBooks[0]);
@@ -1332,12 +1625,20 @@ export default function BlindMode() {
   useEffect(() => {
     if (!cachedSpeechReady) return;
 
+    let welcomeWatchdog = null;
     const welcomeTimer = window.setTimeout(() => {
-      speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome });
+      setIsWelcomeActive(true);
+      speakMenu(WELCOME_MESSAGE, {
+        promptId: MENU_PROMPTS.welcome,
+        onEnd: finishWelcome,
+      });
+      welcomeWatchdog = window.setTimeout(finishWelcome, 22000);
     }, 0);
 
     return () => {
       window.clearTimeout(welcomeTimer);
+      if (welcomeWatchdog) window.clearTimeout(welcomeWatchdog);
+      clearIdleReminder();
       playbackTokenRef.current += 1;
       stopPromptAudio();
       stopAudioPlayback({ resetPosition: true });
@@ -1350,6 +1651,14 @@ export default function BlindMode() {
   }, [cachedSpeechReady, speechSupported]);
 
   useEffect(() => {
+    isPlayingRef.current = isPlaying;
+    isListeningRef.current = isListening;
+    if (welcomeCompletedRef.current) scheduleIdleReminder();
+    // Idle reminder should reflect current playback and listening states.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, isListening]);
+
+  useEffect(() => {
     const nextMode = userProfile?.blindInterfaceMode;
     if (nextMode === 'simple' || nextMode === 'standard') {
       localStorage.setItem(BLIND_INTERFACE_KEY, nextMode);
@@ -1359,6 +1668,31 @@ export default function BlindMode() {
   useEffect(() => {
     function handleKeyboard(event) {
       if (event.target.tagName === 'INPUT') return;
+
+      if (!welcomeCompletedRef.current) {
+        if (
+          event.code === 'Space'
+          || event.key === 'Enter'
+          || event.key === 'ArrowRight'
+          || event.key === 'ArrowLeft'
+          || event.key === 'Escape'
+          || event.key === 'h'
+          || event.key === 'H'
+        ) {
+          event.preventDefault();
+          runAfterWelcome(() => {
+            if (event.key === 'Enter') startListening();
+            else if (event.code === 'Space') togglePlayback();
+            else if (event.key === 'ArrowRight') seekAudio(10);
+            else if (event.key === 'ArrowLeft') seekAudio(-10);
+            else if (event.key === 'Escape' && mode === 'announcements') openLibraryMode();
+            else if (event.key === 'h' || event.key === 'H') {
+              speakMenu(COMMAND_HELP_TEXT, { promptId: MENU_PROMPTS.commandHelp });
+            }
+          });
+        }
+        return;
+      }
 
       if (event.code === 'Space') {
         event.preventDefault();
@@ -1399,9 +1733,16 @@ export default function BlindMode() {
   });
 
   if (blindInterfaceMode === 'simple') {
+    const simplePageClassName = [
+      'blind-page',
+      'blind-page-simple',
+      isListening ? 'listening' : '',
+      isWelcomeActive ? 'welcoming' : '',
+    ].filter(Boolean).join(' ');
+
     return (
       <main
-        className={isListening ? 'blind-page blind-page-simple listening' : 'blind-page blind-page-simple'}
+        className={simplePageClassName}
         onClick={startListening}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.code === 'Space') {
@@ -1423,7 +1764,15 @@ export default function BlindMode() {
           tabIndex={-1}
           aria-label={isListening ? 'Dinleniyor' : 'Sesli komut ver'}
         >
-          <span aria-hidden="true">🎙</span>
+          <span className="blind-audio-bars" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+            <span />
+          </span>
         </button>
         <p className="blind-simple-status" aria-live="polite">
           {isListening ? 'Dinleniyor. Komutunuzu söyleyin.' : status}
@@ -1517,20 +1866,28 @@ export default function BlindMode() {
 
       {mode === 'library' && (
         <>
-          <section className="blind-now-playing" aria-label="Seçili içerik">
-            <span>Seçili içerik</span>
-            <h2>{selectedBook.title}</h2>
-            <p>{selectedBook.chapterTitle || (selectedBook.readingMode === 'tts_text' ? 'PDF metni' : 'Tam Metin')}</p>
-            <p>{selectedBook.author || 'Bilinmeyen yazar'} - {getBookDuration(selectedBook)}</p>
-            <p>Okuma dili: {getReadableLanguage(selectedBook.language)}</p>
-            <p>{selectedBook.readingMode === 'tts_text' ? 'PDF metni Web Speech API ile okunacak' : 'Ses dosyası modu'}</p>
-            {selectedBook.readingMode === 'tts_text' && (
-              <p>
-                Geçerli sayfa: {textChunks[currentChunkIndex]?.pageStart || 'hazır değil'}
-                {bookmark ? ` - İşaretli yer: sayfa ${bookmark.pageStart}` : ''}
-              </p>
-            )}
-          </section>
+          {selectedBook ? (
+            <section className="blind-now-playing" aria-label="Seçili içerik">
+              <span>Seçili içerik</span>
+              <h2>{selectedBook.title}</h2>
+              <p>{selectedBook.chapterTitle || (selectedBook.readingMode === 'tts_text' ? 'PDF metni' : 'Tam Metin')}</p>
+              <p>{selectedBook.author || 'Bilinmeyen yazar'} - {getBookDuration(selectedBook)}</p>
+              <p>Okuma dili: {getReadableLanguage(selectedBook.language)}</p>
+              <p>{selectedBook.readingMode === 'tts_text' ? 'PDF metni Web Speech API ile okunacak' : 'Ses dosyası modu'}</p>
+              {selectedBook.readingMode === 'tts_text' && (
+                <p>
+                  Geçerli sayfa: {textChunks[currentChunkIndex]?.pageStart || 'hazır değil'}
+                  {bookmark ? ` - İşaretli yer: sayfa ${bookmark.pageStart}` : ''}
+                </p>
+              )}
+            </section>
+          ) : (
+            <section className="blind-now-playing" aria-label="Kitaplık durumu">
+              <span>Kitaplık</span>
+              <h2>Yayınlanmış içerik yok</h2>
+              <p>Yüklenen ses dosyaları ve PDF kitaplar admin onayından sonra burada görünür.</p>
+            </section>
+          )}
 
           <section className="blind-library-header" aria-label="Kütüphane kaynağı">
             <span>{librarySource}</span>
@@ -1540,7 +1897,7 @@ export default function BlindMode() {
             {visibleBooks.map((book) => (
               <button
                 type="button"
-                className={book.id === selectedBook.id ? 'blind-book active' : 'blind-book'}
+                className={selectedBook && book.id === selectedBook.id ? 'blind-book active' : 'blind-book'}
                 key={book.id}
                 onClick={() => selectBook(book)}
                 onFocus={() => giveFeedback('focus')}
@@ -1559,7 +1916,15 @@ export default function BlindMode() {
             <span>GTÜ Duyuruları</span>
             <h2>{selectedDepartment ? selectedDepartment.name : 'Bölüm Seçimi'}</h2>
             <p>{selectedAnnouncement ? selectedAnnouncement.title : 'Bölüm adını söyleyin veya listeden seçin.'}</p>
-            <p>{selectedAnnouncement ? selectedAnnouncement.summary : 'Örnek: Bilgisayar duyuruları, Matematik duyuruları.'}</p>
+            <p>
+              {selectedAnnouncement
+                ? getAnnouncementContent(selectedAnnouncement, { readFullDetail: true })
+                  || 'Bu duyuru için okunabilir detay metni alınamadı. Kaynak bağlantısı ekranda mevcut.'
+                : 'Örnek: Bilgisayar duyuruları, Matematik duyuruları.'}
+            </p>
+            {selectedAnnouncement?.detailUrl && (
+              <p>Kaynak: {selectedAnnouncement.detailUrl}</p>
+            )}
           </section>
 
           {!selectedDepartment && (

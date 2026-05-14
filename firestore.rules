@@ -132,7 +132,7 @@ service cloud.firestore {
     }
 
     match /announcements/{announcementId} {
-      allow read: if resource.data.status == 'published' || isAdmin();
+      allow read: if true;
       allow write: if isAdmin();
     }
 

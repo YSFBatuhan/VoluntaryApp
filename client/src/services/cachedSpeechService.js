@@ -1,4 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 export const MENU_PROMPTS = {
@@ -83,6 +83,11 @@ const CACHED_MENU_AUDIO_URLS = {
 
 let runtimeMenuAudioUrls = {};
 
+// Runtime cache: Firestore 'announcements' koleksiyonundan okunan audio URL'leri.
+// Batch script veya Cloud Function ile uretilen sesler buraya yazilir,
+// statik JS dosyasinda audio alani olmayan duyurular icin runtime'da tamamlanir.
+let runtimeAnnouncementAudioCache = {};
+
 export async function loadCachedSpeechConfig() {
   const snapshot = await getDoc(doc(db, 'app_config', 'public'));
   const audioPrompts = snapshot.exists() ? snapshot.data()?.audioPrompts : null;
@@ -94,19 +99,47 @@ export async function loadCachedSpeechConfig() {
   return runtimeMenuAudioUrls;
 }
 
+/**
+ * Firestore 'announcements' koleksiyonundan duyuru audio URL'lerini yukler.
+ * Batch script veya Cloud Function tarafindan uretilen sesleri runtime'da client'a getirir.
+ */
+export async function loadAnnouncementAudioCache() {
+  try {
+    const snapshot = await getDocs(collection(db, 'announcements'));
+    const cache = {};
+    snapshot.forEach((docSnap) => {
+      const data = docSnap.data();
+      if (data?.audio) {
+        cache[docSnap.id] = data.audio;
+      }
+    });
+    runtimeAnnouncementAudioCache = cache;
+    return cache;
+  } catch {
+    // Firestore erisim hatasi sessizce yutulur, Web Speech fallback devam eder.
+    return {};
+  }
+}
+
 export function getCachedMenuAudioUrl(promptId) {
   if (!promptId) return '';
   return runtimeMenuAudioUrls[promptId] || CACHED_MENU_AUDIO_URLS[promptId] || '';
 }
 
 export function getCachedAnnouncementAudioUrl(announcement, { readFullDetail = false } = {}) {
-  if (!announcement?.audio) return '';
+  // Oncelik 1: Statik data'daki audio alani (generatedGtuAnnouncements.js'te varsa)
+  const staticAudio = announcement?.audio;
+  // Oncelik 2: Runtime Firestore cache (batch script / Cloud Function ile uretilmis)
+  const runtimeAudio = announcement?.id ? runtimeAnnouncementAudioCache[announcement.id] : null;
+
+  const audio = staticAudio || runtimeAudio;
+  if (!audio) return '';
 
   if (readFullDetail) {
-    return announcement.audio.detailUrl || announcement.audio.url || '';
+    return audio.detailUrl || audio.url || '';
   }
 
-  return announcement.audio.summaryUrl || announcement.audio.url || '';
+  return audio.summaryUrl || audio.url || '';
 }
 
 export function createCachedSpeechAudio(url) {

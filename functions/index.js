@@ -37,15 +37,24 @@ exports.generateCachedSpeech = onCall(
       promptId = '',
       announcementId = '',
       announcementVariant = 'summary',
+      publicPromptId = '',
       model,
       voiceId,
     } = request.data || {};
 
-    if (!request.auth?.uid) {
+    const isPublicAnnouncementAudio = Boolean(announcementId);
+    const isPublicPromptAudio = Boolean(publicPromptId)
+      && /^blind_(department|announcement|menu)_/.test(publicPromptId);
+
+    if (!request.auth?.uid && !isPublicAnnouncementAudio && !isPublicPromptAudio) {
       throw new HttpsError('unauthenticated', 'Giris yapmadan premium ses uretilemez.');
     }
 
-    await assertAdmin(request.auth.uid);
+    // Duyuru icerigi ve onayli dinleyici promptlari cache-on-first-listen calisir.
+    // Diger menu/genel ses uretimleri admin-only kalir.
+    if (!isPublicAnnouncementAudio && !isPublicPromptAudio) {
+      await assertAdmin(request.auth.uid);
+    }
 
     const normalizedText = normalizeSpeechText(text);
     if (!normalizedText) {
@@ -56,9 +65,16 @@ exports.generateCachedSpeech = onCall(
     if (!config.elevenLabsEnabled) {
       throw new HttpsError('failed-precondition', 'ElevenLabs uretimi admin ayarlarinda kapali.');
     }
+    const actorId = request.auth?.uid || 'public_listener';
 
-    const targetType = promptId ? 'menu_prompt' : announcementId ? 'announcement' : 'generic';
-    const maxChars = targetType === 'announcement'
+    const targetType = promptId
+      ? 'menu_prompt'
+      : announcementId
+        ? 'announcement'
+        : publicPromptId
+          ? 'public_prompt'
+          : 'generic';
+    const maxChars = targetType === 'announcement' || targetType === 'public_prompt'
       ? config.maxCharsPerAnnouncement
       : config.maxCharsPerRequest;
 
@@ -89,6 +105,7 @@ exports.generateCachedSpeech = onCall(
         promptId,
         announcementId,
         announcementVariant,
+        publicPromptId,
         metadata: cached,
       });
       return {
@@ -105,7 +122,7 @@ exports.generateCachedSpeech = onCall(
       throw new HttpsError('resource-exhausted', 'Aylik ElevenLabs kredi limiti asilacak.');
     }
 
-    const apiKey = elevenLabsApiKey.value();
+    const apiKey = String(elevenLabsApiKey.value() || '').trim();
     if (!apiKey) {
       throw new HttpsError('failed-precondition', 'ELEVENLABS_API_KEY secret tanimli degil.');
     }
@@ -117,6 +134,7 @@ exports.generateCachedSpeech = onCall(
       voiceId: nextVoiceId,
     });
     const audioPath = `tts_cache/${textHash}.mp3`;
+    const downloadToken = crypto.randomUUID();
     const bucket = admin.storage().bucket();
     const file = bucket.file(audioPath);
 
@@ -130,14 +148,13 @@ exports.generateCachedSpeech = onCall(
           provider: 'elevenlabs',
           model: nextModel,
           language,
+          firebaseStorageDownloadTokens: downloadToken,
         },
       },
     });
 
-    const [audioUrl] = await file.getSignedUrl({
-      action: 'read',
-      expires: '03-01-2500',
-    });
+    const audioUrl =
+      `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(audioPath)}?alt=media&token=${downloadToken}`;
 
     const cachePayload = {
       textHash,
@@ -149,6 +166,7 @@ exports.generateCachedSpeech = onCall(
       charCount: normalizedText.length,
       creditEstimate,
       targetType,
+      publicPromptId,
       audio: {
         provider: 'firebase_storage',
         url: audioUrl,
@@ -157,7 +175,7 @@ exports.generateCachedSpeech = onCall(
         bytes: audioBuffer.length,
       },
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      createdBy: request.auth.uid,
+      createdBy: actorId,
     };
 
     await cacheRef.set(cachePayload);
@@ -165,7 +183,7 @@ exports.generateCachedSpeech = onCall(
       {
         usedCreditsEstimate: admin.firestore.FieldValue.increment(creditEstimate),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedBy: request.auth.uid,
+        updatedBy: actorId,
       },
       { merge: true },
     );
@@ -176,6 +194,7 @@ exports.generateCachedSpeech = onCall(
       promptId,
       announcementId,
       announcementVariant,
+      publicPromptId,
       metadata: cachePayload,
     });
 
@@ -253,9 +272,16 @@ async function generateElevenLabsAudio({ apiKey, text, model, voiceId }) {
       ? 'failed-precondition'
       : 'internal';
 
+    console.error('ElevenLabs generation failed', {
+      status: response.status,
+      message,
+      raw: errorText.slice(0, 500),
+    });
+
     throw new HttpsError(code, message, {
       provider: 'elevenlabs',
       status: response.status,
+      raw: errorText.slice(0, 500),
     });
   }
 
@@ -277,6 +303,7 @@ async function attachCachedAudio({
   promptId,
   announcementId,
   announcementVariant,
+  publicPromptId,
   metadata,
 }) {
   if (!audioUrl) return;
@@ -298,6 +325,18 @@ async function attachCachedAudio({
       {
         audioPrompts: {
           [promptId]: audioPayload,
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+
+  if (publicPromptId) {
+    await db.collection('app_config').doc('public').set(
+      {
+        audioPrompts: {
+          [publicPromptId]: audioPayload,
         },
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
