@@ -16,13 +16,8 @@ const adminNavItems = [
 ];
 
 export default function Sidebar() {
-  const { userProfile, logout } = useAuth();
+  const { userProfile } = useAuth();
   const navigate = useNavigate();
-
-  async function handleLogout() {
-    await logout();
-    navigate('/login');
-  }
 
   const initials = userProfile?.name
     ? userProfile.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
@@ -67,9 +62,6 @@ export default function Sidebar() {
         <ul className="sidebar-links">
           <li onClick={() => navigate('/community')}>
             <span>Yardım</span>
-          </li>
-          <li onClick={handleLogout}>
-            <span>Çıkış Yap</span>
           </li>
         </ul>
       </div>

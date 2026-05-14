@@ -122,6 +122,10 @@ body {
   gap: 0.7rem;
 }
 
+.topbar-profile-menu {
+  position: relative;
+}
+
 .avatar-small {
   width: 36px;
   height: 36px;
@@ -162,6 +166,13 @@ body {
   text-align: left;
 }
 
+.topbar-profile:hover,
+.topbar-profile[aria-expanded="true"],
+.topbar-icon-button:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 8px 22px rgba(34, 50, 41, 0.08);
+}
+
 .topbar-profile strong,
 .topbar-profile small {
   display: block;
@@ -174,6 +185,88 @@ body {
 .topbar-profile small {
   color: var(--color-text-muted);
   font-size: 0.75rem;
+}
+
+.profile-chevron {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  padding-left: 0.15rem;
+}
+
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  width: 260px;
+  background: #fff;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  box-shadow: 0 18px 42px rgba(34, 50, 41, 0.14);
+  padding: 0.5rem;
+}
+
+.profile-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 22px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-left: 1px solid var(--panel-border);
+  border-top: 1px solid var(--panel-border);
+  transform: rotate(45deg);
+}
+
+.profile-dropdown-header {
+  padding: 0.8rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 0.35rem;
+}
+
+.profile-dropdown-header strong,
+.profile-dropdown-header span {
+  display: block;
+}
+
+.profile-dropdown-header strong {
+  font-size: 0.95rem;
+}
+
+.profile-dropdown-header span {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-dropdown button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-dark);
+  border-radius: 7px;
+  padding: 0.72rem 0.85rem;
+  text-align: left;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.profile-dropdown button:hover {
+  background: #F3F5ED;
+}
+
+.profile-dropdown button.danger {
+  color: #A33D2F;
+}
+
+.profile-dropdown-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 0.35rem 0;
 }
 
 /* --- Page Content --- */
@@ -482,6 +575,12 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  border-radius: 8px;
+}
+
+.sidebar-links li:hover {
+  background: #F3F5ED;
+  color: var(--color-text-dark);
 }
 
 /* --- Pseudo Chart (Tasarımdaki Sütun Grafik) --- */
@@ -2416,6 +2515,84 @@ body {
   gap: 0.8rem;
 }
 
+.statistics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 1.5rem;
+  align-items: start;
+  margin-top: 1.4rem;
+}
+
+.statistics-grid .contribution-card {
+  grid-row: span 2;
+}
+
+.statistics-grid .next-action-card {
+  min-height: 100%;
+}
+
+.goal-card {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.goal-card strong {
+  font-size: 1.65rem;
+  color: var(--color-text-dark);
+}
+
+.goal-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.55;
+}
+
+.goal-progress {
+  height: 10px;
+  border-radius: 999px;
+  background: #EEF1E8;
+  overflow: hidden;
+}
+
+.goal-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.stats-recent-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.stats-recent-list article {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #FBFBF6;
+  padding: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.stats-recent-list strong,
+.stats-recent-list span {
+  display: block;
+}
+
+.stats-recent-list strong {
+  color: var(--color-text-dark);
+  font-size: 0.95rem;
+}
+
+.stats-recent-list span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+}
+
 .stats-summary-list div {
   padding: 1rem;
   display: grid;
@@ -2623,11 +2800,17 @@ body {
 
 @media (max-width: 980px) {
   .topbar-right {
+    display: flex;
+    margin-left: auto;
+  }
+
+  .search-bar {
     display: none;
   }
 
   .studio-main-panel,
-  .community-grid {
+  .community-grid,
+  .statistics-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -2791,12 +2974,31 @@ textarea {
   .topbar {
     height: auto;
     padding: 1rem;
-    align-items: flex-start;
+    align-items: center;
     border-bottom: 0;
+    gap: 1rem;
   }
 
   .brand {
     font-size: 1.25rem;
+  }
+
+  .topbar-icon-button {
+    display: none;
+  }
+
+  .topbar-profile {
+    min-height: 42px;
+    padding-right: 8px;
+  }
+
+  .topbar-profile span:not(.avatar-small):not(.profile-chevron) {
+    display: none;
+  }
+
+  .profile-dropdown {
+    right: 0;
+    width: min(280px, calc(100vw - 2rem));
   }
 
   .topbar-context {
