@@ -1,6 +1,7 @@
 ﻿import { useCallback, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
+  addAudioChapterToBook,
   createAudioBook,
   createPdfBook,
   getBooksByOwner,
@@ -38,6 +39,10 @@ export default function BookManagement() {
   const [selectedBookId, setSelectedBookId] = useState('');
   const [editForm, setEditForm] = useState(null);
   const [replacementAudioFile, setReplacementAudioFile] = useState(null);
+  const [newChapterForm, setNewChapterForm] = useState({ chapterTitle: '' });
+  const [newChapterAudioFile, setNewChapterAudioFile] = useState(null);
+  const [newChapterProgress, setNewChapterProgress] = useState(0);
+  const [addingChapter, setAddingChapter] = useState(false);
   const [replacementProgress, setReplacementProgress] = useState(0);
   const [replacingAudio, setReplacingAudio] = useState(false);
   const [savingBook, setSavingBook] = useState(false);
@@ -107,6 +112,9 @@ export default function BookManagement() {
     setSelectedBookId(book.id);
     setEditForm(toEditForm(book));
     setReplacementAudioFile(null);
+    setNewChapterForm({ chapterTitle: '' });
+    setNewChapterAudioFile(null);
+    setNewChapterProgress(0);
     setReplacementProgress(0);
     setSuccessMsg('');
     setError('');
@@ -132,6 +140,18 @@ export default function BookManagement() {
       return;
     } catch (err) {
       setReplacementAudioFile(null);
+      setError(err.message);
+    }
+  }
+
+  function handleNewChapterAudioChange(file) {
+    try {
+      validateAudioFile(file);
+      setNewChapterAudioFile(file);
+      setError('');
+      return;
+    } catch (err) {
+      setNewChapterAudioFile(null);
       setError(err.message);
     }
   }
@@ -273,6 +293,40 @@ export default function BookManagement() {
     }
   }
 
+  async function handleAddChapterSubmit() {
+    if (!selectedBook) return;
+    if (!newChapterAudioFile) return setError('Lütfen eklenecek bölüm ses dosyasını seçin.');
+    if (selectedBook.sourceType !== 'audio_upload') return setError('Bölüm ekleme sadece sesli kitaplarda kullanılabilir.');
+
+    setAddingChapter(true);
+    setNewChapterProgress(0);
+    setSuccessMsg('');
+    setError('');
+
+    try {
+      const audioUpload = await uploadAudioFile({
+        file: newChapterAudioFile,
+        userId: currentUser.uid,
+        onProgress: setNewChapterProgress,
+      });
+      await addAudioChapterToBook({
+        book: selectedBook,
+        form: newChapterForm,
+        audioUpload,
+        currentUser,
+        userProfile,
+      });
+      setNewChapterAudioFile(null);
+      setNewChapterForm({ chapterTitle: '' });
+      setSuccessMsg('Yeni bölüm eklendi ve kitap kalite kontrol kuyruğuna gönderildi.');
+      await loadMyBooks();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAddingChapter(false);
+    }
+  }
+
   return (
     <div className="bm-page">
       <div className="page-header">
@@ -333,10 +387,16 @@ export default function BookManagement() {
           filteredBooks={filteredBooks}
           handleMetadataSave={handleMetadataSave}
           handleAudioReplacementSubmit={handleAudioReplacementSubmit}
+          handleAddChapterSubmit={handleAddChapterSubmit}
+          handleNewChapterAudioChange={handleNewChapterAudioChange}
           handleReplacementAudioChange={handleReplacementAudioChange}
+          addingChapter={addingChapter}
           loadMyBooks={loadMyBooks}
           loadingMyBooks={loadingMyBooks}
           myBooks={myBooks}
+          newChapterAudioFile={newChapterAudioFile}
+          newChapterForm={newChapterForm}
+          newChapterProgress={newChapterProgress}
           replacementAudioFile={replacementAudioFile}
           replacementProgress={replacementProgress}
           replacingAudio={replacingAudio}
@@ -346,6 +406,7 @@ export default function BookManagement() {
           selectedBookId={selectedBookId}
           setBookFilter={setBookFilter}
           setEditForm={setEditForm}
+          setNewChapterForm={setNewChapterForm}
           setTab={setTab}
           successMsg={successMsg}
         />
@@ -580,17 +641,23 @@ function ProcessHelpCard({ type }) {
 }
 
 function MyBooksPanel({
+  addingChapter,
   bookCounts,
   bookFilter,
   editForm,
   error,
   filteredBooks,
+  handleAddChapterSubmit,
   handleMetadataSave,
   handleAudioReplacementSubmit,
+  handleNewChapterAudioChange,
   handleReplacementAudioChange,
   loadMyBooks,
   loadingMyBooks,
   myBooks,
+  newChapterAudioFile,
+  newChapterForm,
+  newChapterProgress,
   replacementAudioFile,
   replacementProgress,
   replacingAudio,
@@ -600,6 +667,7 @@ function MyBooksPanel({
   selectedBookId,
   setBookFilter,
   setEditForm,
+  setNewChapterForm,
   setTab,
   successMsg,
 }) {
@@ -679,14 +747,21 @@ function MyBooksPanel({
             <BookCorrectionPanel
               editForm={editForm}
               handleMetadataSave={handleMetadataSave}
+              handleAddChapterSubmit={handleAddChapterSubmit}
               handleAudioReplacementSubmit={handleAudioReplacementSubmit}
+              handleNewChapterAudioChange={handleNewChapterAudioChange}
               handleReplacementAudioChange={handleReplacementAudioChange}
+              addingChapter={addingChapter}
+              newChapterAudioFile={newChapterAudioFile}
+              newChapterForm={newChapterForm}
+              newChapterProgress={newChapterProgress}
               replacementAudioFile={replacementAudioFile}
               replacementProgress={replacementProgress}
               replacingAudio={replacingAudio}
               savingBook={savingBook}
               selectedBook={selectedBook}
               setEditForm={setEditForm}
+              setNewChapterForm={setNewChapterForm}
             />
           </div>
         </div>
@@ -696,16 +771,23 @@ function MyBooksPanel({
 }
 
 function BookCorrectionPanel({
+  addingChapter,
   editForm,
+  handleAddChapterSubmit,
   handleAudioReplacementSubmit,
+  handleNewChapterAudioChange,
   handleMetadataSave,
   handleReplacementAudioChange,
+  newChapterAudioFile,
+  newChapterForm,
+  newChapterProgress,
   replacementAudioFile,
   replacementProgress,
   replacingAudio,
   savingBook,
   selectedBook,
   setEditForm,
+  setNewChapterForm,
 }) {
   if (!selectedBook || !editForm) {
     return (
@@ -716,6 +798,7 @@ function BookCorrectionPanel({
   }
 
   const canResubmit = ['needs_fix', 'rejected'].includes(selectedBook.status);
+  const canAddChapter = selectedBook.sourceType === 'audio_upload';
 
   return (
     <aside className="book-correction-panel">
@@ -784,10 +867,50 @@ function BookCorrectionPanel({
         </div>
       </div>
 
+      {canAddChapter && (
+        <div className="audio-replacement-box">
+          <strong>Yeni bölüm ekle</strong>
+          <p>Uzun hikaye veya kitapları 25 MB altı parçalara bölün. Yeni bölüm eklenince kitap tekrar kalite kontrol kuyruğuna düşer.</p>
+          <div className="form-group">
+            <label>Bölüm başlığı</label>
+            <input
+              value={newChapterForm.chapterTitle}
+              onChange={e => setNewChapterForm({ ...newChapterForm, chapterTitle: e.target.value })}
+              placeholder={`Bölüm ${(selectedBook.chapterCount || 0) + 1}`}
+            />
+          </div>
+          <label className="replacement-file-picker">
+            <input
+              type="file"
+              accept="audio/*,.mp3,.m4a,.aac,.webm,.ogg,.wav"
+              onChange={e => handleNewChapterAudioChange(e.target.files[0])}
+            />
+            <span>{newChapterAudioFile ? `${newChapterAudioFile.name} (${formatBytes(newChapterAudioFile.size)})` : 'Bölüm ses dosyası seç'}</span>
+          </label>
+          {addingChapter && (
+            <div className="upload-progress compact">
+              <span>Bölüm yükleniyor</span>
+              <strong>{newChapterProgress}%</strong>
+              <div className="progress-bar">
+                <div className="fill" style={{ width: `${newChapterProgress}%`, background: 'var(--color-primary)' }}></div>
+              </div>
+            </div>
+          )}
+          <button
+            className="btn-sage"
+            type="button"
+            onClick={handleAddChapterSubmit}
+            disabled={addingChapter || !newChapterAudioFile}
+          >
+            {addingChapter ? 'Yükleniyor...' : 'Bölümü Ekle'}
+          </button>
+        </div>
+      )}
+
       {selectedBook.sourceType === 'audio_upload' && canResubmit && (
         <div className="audio-replacement-box">
-          <strong>Ses dosyası değişimi</strong>
-          <p>Yeni dosya en fazla {MAX_AUDIO_MB} MB olabilir. Kısa ve sıkıştırılmış MP3/M4A/WebM tercih edin; yükleme sonrası içerik tekrar kalite kontrole düşer.</p>
+          <strong>İlk bölüm sesini değiştir</strong>
+          <p>Yeni dosya en fazla {MAX_AUDIO_MB} MB olabilir. Çok bölümlü kitaplarda bu işlem ilk bölümü değiştirir; yeni parça eklemek için yukarıdaki bölüm ekleme alanını kullanın.</p>
           <label className="replacement-file-picker">
             <input
               type="file"

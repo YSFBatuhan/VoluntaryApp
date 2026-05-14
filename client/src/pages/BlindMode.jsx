@@ -9,6 +9,7 @@ import {
   loadCachedSpeechConfig,
   MENU_PROMPTS,
 } from '../services/cachedSpeechService';
+import { generateCachedDynamicSpeech } from '../services/elevenLabsGenerationService';
 import { createMenuUtterance, createUtterance, getSpeechLanguage } from '../services/speechService';
 import { normalizeText } from '../services/textUtils';
 import { parseVoiceCommand } from '../services/voiceCommandService';
@@ -111,6 +112,7 @@ export default function BlindMode() {
   const recognitionRef = useRef(null);
   const listeningPulseRef = useRef(null);
   const playbackTokenRef = useRef(0);
+  const speechRequestTokenRef = useRef(0);
   const promptAudioRef = useRef(null);
   const audioPlayerRef = useRef(null);
   const currentAudioBookIdRef = useRef('');
@@ -208,8 +210,38 @@ export default function BlindMode() {
     });
   }
 
+  async function playGeneratedSpeech(message, language, fallback, options = {}) {
+    if (!options.allowDynamicSpeech) {
+      fallback();
+      return;
+    }
+
+    try {
+      const result = await generateCachedDynamicSpeech({
+        text: message,
+        language,
+        announcementId: options.announcementId,
+        announcementVariant: options.announcementVariant,
+      });
+
+      if (options.requestToken !== speechRequestTokenRef.current) return;
+
+      if (result?.audioUrl) {
+        playCachedSpeech(result.audioUrl, fallback);
+        return;
+      }
+    } catch {
+      // Missing quota, config, or provider access should not break the listener screen.
+    }
+
+    if (options.requestToken !== speechRequestTokenRef.current) return;
+    fallback();
+  }
+
   function speak(message, language = 'tr-TR', options = {}) {
     setStatus(message);
+    const requestToken = speechRequestTokenRef.current + 1;
+    speechRequestTokenRef.current = requestToken;
 
     const fallback = () => {
       if (!speechSupported) return;
@@ -225,11 +257,13 @@ export default function BlindMode() {
       return;
     }
 
-    fallback();
+    playGeneratedSpeech(message, language, fallback, { ...options, requestToken });
   }
 
   function speakMenu(message, options = {}) {
     setStatus(message);
+    const requestToken = speechRequestTokenRef.current + 1;
+    speechRequestTokenRef.current = requestToken;
 
     const fallback = () => {
       if (!speechSupported) return;
@@ -246,7 +280,7 @@ export default function BlindMode() {
       return;
     }
 
-    fallback();
+    playGeneratedSpeech(message, 'tr-TR', fallback, { ...options, requestToken });
   }
 
   function getBookDuration(book) {
@@ -325,6 +359,7 @@ export default function BlindMode() {
       chunkIndex,
       pageStart,
       positionSec: Math.max(0, Math.floor(positionSec || 0)),
+      chapterId,
       savedAt: new Date().toISOString(),
     };
 
@@ -371,6 +406,7 @@ export default function BlindMode() {
       chunkIndex: progress.chunkIndex || 0,
       pageStart: progress.pageStart || null,
       positionSec: progress.positionSec || 0,
+      chapterId: progress.chapterId || '',
       savedAt: progress.updatedAt?.toDate?.().toISOString?.() || new Date().toISOString(),
     };
   }
@@ -695,6 +731,7 @@ export default function BlindMode() {
       : announcement.summary;
     speak(`${announcement.title}. ${detailText}`, announcement.language || 'tr-TR', {
       cachedAudioUrl: getCachedAnnouncementAudioUrl(announcement, { readFullDetail }),
+      announcementVariant: readFullDetail ? 'detail' : 'summary',
     });
   }
 
@@ -765,11 +802,10 @@ export default function BlindMode() {
   }
 
   function listDepartments() {
-    const firstDepartments = visibleDepartments.slice(0, 8);
-    speakMenu(`Bölümler: ${formatDepartmentTitles(firstDepartments)} Bölüm adı söyleyebilir, 1 diyebilir veya birinciyi aç diyebilirsiniz.`);
+    speakMenu(`Bölümler: ${formatDepartmentTitles(visibleDepartments)} Bölüm adı söyleyebilir, 1 diyebilir veya birinciyi aç diyebilirsiniz.`);
   }
 
-  function formatDepartmentTitles(departments, maxCount = 8) {
+  function formatDepartmentTitles(departments, maxCount = departments.length) {
     return departments
       .slice(0, maxCount)
       .map((department, index) => `${index + 1}. ${department.name}`)
@@ -810,9 +846,9 @@ export default function BlindMode() {
       stopAudioPlayback({ resetPosition: true });
 
       const chapters = await getPublishedChapters(book.id);
-      const playableChapter = chapters.find(chapter => chapter.audio?.url);
+      const playableChapters = chapters.filter(chapter => chapter.audio?.url);
 
-      if (!playableChapter) {
+      if (!playableChapters.length) {
         setIsPlaying(false);
         giveFeedback('error');
         speakMenu('Bu sesli kitap için yayımlanmış ses dosyası bulunamadı. Admin onayından sonra tekrar deneyin.', {
@@ -821,6 +857,30 @@ export default function BlindMode() {
         return;
       }
 
+      const progress = startPositionSec === null ? await loadProgressForBook(book) : null;
+      const savedChapterIndex = progress?.chapterId
+        ? playableChapters.findIndex(chapter => chapter.id === progress.chapterId)
+        : -1;
+      const chapterIndex = Math.max(0, savedChapterIndex);
+      const resumePosition = startPositionSec ?? progress?.positionSec ?? 0;
+      playAudioChapterSequence({
+        book,
+        chapters: playableChapters,
+        chapterIndex,
+        startPositionSec: resumePosition,
+      });
+    } catch {
+      setIsPlaying(false);
+      giveFeedback('error');
+      speakMenu('Ses dosyası başlatılamadı. Tarayıcı izinlerini veya Storage ayarlarını kontrol edin.', {
+        promptId: MENU_PROMPTS.audioStartError,
+      });
+    }
+  }
+
+  async function playAudioChapterSequence({ book, chapters, chapterIndex, startPositionSec = 0 }) {
+    try {
+      const playableChapter = chapters[chapterIndex];
       const audio = new Audio(playableChapter.audio.url);
       audioPlayerRef.current = audio;
       currentAudioBookIdRef.current = book.id;
@@ -828,14 +888,24 @@ export default function BlindMode() {
       setIsPlaying(true);
       setStatus(`${book.title} oynatılıyor. ${playableChapter.chapterTitle || 'Ses bölümü'}.`);
 
-      const progress = startPositionSec === null ? await loadProgressForBook(book) : null;
-      const resumePosition = startPositionSec ?? progress?.positionSec ?? 0;
-      if (resumePosition > 0) {
-        audio.currentTime = resumePosition;
+      if (startPositionSec > 0) {
+        audio.currentTime = startPositionSec;
       }
 
       audio.ontimeupdate = () => maybeSaveAudioProgress(book, playableChapter.id, audio.currentTime);
       audio.onended = () => {
+        const nextChapterIndex = chapterIndex + 1;
+        if (nextChapterIndex < chapters.length) {
+          persistProgress({ book, chapterId: chapters[nextChapterIndex].id, positionSec: 0 });
+          playAudioChapterSequence({
+            book,
+            chapters,
+            chapterIndex: nextChapterIndex,
+            startPositionSec: 0,
+          });
+          return;
+        }
+
         setIsPlaying(false);
         persistProgress({
           book,

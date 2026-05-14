@@ -13,9 +13,39 @@ const DEPARTMENT_SOURCES = [
     url: `${BASE_URL}/tr/kategori/91/3/display.aspx`,
   },
   {
+    departmentId: 'biyomuhendislik',
+    departmentName: 'Biyomuhendislik',
+    url: `${BASE_URL}/tr/kategori/307/3/display.aspx`,
+  },
+  {
+    departmentId: 'cevre',
+    departmentName: 'Cevre Muhendisligi',
+    url: `${BASE_URL}/tr/kategori/305/3/display.aspx`,
+  },
+  {
     departmentId: 'elektronik',
     departmentName: 'Elektronik Muhendisligi',
     url: `${BASE_URL}/tr/kategori/301/3/display.aspx`,
+  },
+  {
+    departmentId: 'endustri',
+    departmentName: 'Endustri Muhendisligi',
+    url: `${BASE_URL}/tr/kategori/3218/0/display.aspx`,
+  },
+  {
+    departmentId: 'harita',
+    departmentName: 'Harita Muhendisligi',
+    url: `${BASE_URL}/tr/kategori/303/3/display.aspx`,
+  },
+  {
+    departmentId: 'insaat',
+    departmentName: 'Insaat Muhendisligi',
+    url: `${BASE_URL}/tr/kategori/2404/0/display.aspx`,
+  },
+  {
+    departmentId: 'kimya-muhendisligi',
+    departmentName: 'Kimya Muhendisligi',
+    url: `${BASE_URL}/tr/kategori/306/3/display.aspx`,
   },
   {
     departmentId: 'makine',
@@ -28,14 +58,74 @@ const DEPARTMENT_SOURCES = [
     url: `${BASE_URL}/tr/kategori/304/3/display.aspx`,
   },
   {
-    departmentId: 'matematik',
-    departmentName: 'Matematik',
-    url: `${BASE_URL}/tr/kategori/560/3/display.aspx`,
+    departmentId: 'ucak',
+    departmentName: 'Ucak Muhendisligi',
+    url: `${BASE_URL}/tr/kategori/3807/3/display.aspx`,
   },
   {
     departmentId: 'mimarlik',
     departmentName: 'Mimarlik',
     url: `${BASE_URL}/tr/kategori/564/3/display.aspx`,
+  },
+  {
+    departmentId: 'sehir-planlama',
+    departmentName: 'Sehir ve Bolge Planlama',
+    url: `${BASE_URL}/tr/kategori/565/3/display.aspx`,
+  },
+  {
+    departmentId: 'endustriyel-tasarim',
+    departmentName: 'Endustriyel Tasarim',
+    url: `${BASE_URL}/tr/kategori/6792/0/display.aspx`,
+  },
+  {
+    departmentId: 'fizik',
+    departmentName: 'Fizik',
+    url: `${BASE_URL}/tr/kategori/562/3/display.aspx`,
+  },
+  {
+    departmentId: 'kimya',
+    departmentName: 'Kimya',
+    url: `${BASE_URL}/tr/kategori/561/3/display.aspx`,
+  },
+  {
+    departmentId: 'matematik',
+    departmentName: 'Matematik',
+    url: `${BASE_URL}/tr/kategori/560/3/display.aspx`,
+  },
+  {
+    departmentId: 'molekuler-biyoloji',
+    departmentName: 'Molekuler Biyoloji ve Genetik',
+    url: `${BASE_URL}/tr/kategori/563/3/display.aspx`,
+  },
+  {
+    departmentId: 'veri-bilimi',
+    departmentName: 'Veri Bilimi ve Analitigi',
+    url: `${BASE_URL}/tr/kategori/6739/3/display.aspx`,
+  },
+  {
+    departmentId: 'isletme',
+    departmentName: 'Isletme',
+    url: `${BASE_URL}/tr/kategori/566/3/display.aspx`,
+  },
+  {
+    departmentId: 'iktisat',
+    departmentName: 'Iktisat',
+    url: `${BASE_URL}/tr/kategori/567/3/display.aspx`,
+  },
+  {
+    departmentId: 'strateji',
+    departmentName: 'Strateji Bilimi',
+    url: `${BASE_URL}/tr/kategori/568/3/display.aspx`,
+  },
+  {
+    departmentId: 'ybs',
+    departmentName: 'Yonetim Bilisim Sistemleri',
+    url: `${BASE_URL}/tr/kategori/3822/3/display.aspx`,
+  },
+  {
+    departmentId: 'siber-guvenlik',
+    departmentName: 'Siber Guvenlik Meslek Yuksekokulu',
+    url: `${BASE_URL}/tr/kategori/5231/0/display.aspx`,
   },
 ];
 
@@ -116,7 +206,7 @@ function parseAnnouncementList(html) {
 
 function parseDepartmentHomeAnnouncements(html, source) {
   const headingIndex = html.indexOf('>Duyurular<a');
-  if (headingIndex === -1) return [];
+  if (headingIndex === -1) return parseDepartmentListAnnouncements(html, source);
 
   const blockStart = html.indexOf('<div class="flex flex-col', headingIndex);
   const blockEnd = html.indexOf('</div></div></div>', blockStart);
@@ -124,7 +214,7 @@ function parseDepartmentHomeAnnouncements(html, source) {
   const itemPattern = /(?:<a href="([^"]+)"|<button\b)[\s\S]*?<div class="[^"]*(?:bg-\[#3a5189\]|text-white)[^"]*"[^>]*>([\s\S]*?)<\/div>\s*<p[^>]*>([\s\S]*?)<\/p>/g;
   const seen = new Set();
 
-  return [...block.matchAll(itemPattern)]
+  const cardItems = [...block.matchAll(itemPattern)]
     .map((match, index) => {
       const rawHref = match[1] || '';
       const dateText = cleanText(match[2]) || 'GTU';
@@ -152,7 +242,63 @@ function parseDepartmentHomeAnnouncements(html, source) {
       };
     })
     .filter((item) => {
-      if (!item.title || seen.has(`${item.departmentId}-${item.title}`)) return false;
+      if (!item.title || isIgnoredAnnouncementTitle(item.title) || seen.has(`${item.departmentId}-${item.title}`)) return false;
+      seen.add(`${item.departmentId}-${item.title}`);
+      return true;
+    });
+
+  return cardItems.length ? cardItems : parseDepartmentListAnnouncements(html, source);
+}
+
+function parseDepartmentListAnnouncements(html, source) {
+  const headingIndex = html.search(/Duyurular/i);
+  if (headingIndex === -1) return [];
+
+  const block = html.slice(headingIndex, headingIndex + 18000);
+  const matches = [...block.matchAll(/<a\s+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g)];
+  const seen = new Set();
+
+  return matches
+    .map((match, index) => {
+      const rawHref = match[1] || '';
+      const title = cleanText(match[2]);
+      const sourceUrl = rawHref ? absoluteUrl(rawHref) : source.url;
+      const idSource = `${source.departmentId}-${title}-${index}`;
+
+      return {
+        id: `gtu-${source.departmentId}-${slugify(idSource)}`,
+        departmentId: source.departmentId,
+        departmentName: source.departmentName,
+        title,
+        dateText: 'GTU',
+        detailUrl: sourceUrl,
+        sourceUrl,
+        sourceHash: slugify(idSource),
+        language: 'tr-TR',
+        status: 'published',
+        summary: sourceUrl.endsWith('.pdf')
+          ? `${title}. Bu duyuru PDF dosyasina baglanir.`
+          : `${title}. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.`,
+        bodyText: sourceUrl.endsWith('.pdf')
+          ? title
+          : `${title}. Bu duyuru icin kaynak sayfada ayri detay metni bulunamadi.`,
+      };
+    })
+    .filter((item) => {
+      const decodedUrl = decodeURIComponent(item.sourceUrl || '').toLocaleLowerCase('tr-TR');
+      const isAnnouncementLink =
+        decodedUrl.includes('/icerik/') ||
+        decodedUrl.includes('/fileman/') ||
+        decodedUrl.includes('.pdf');
+
+      if (
+        !item.title ||
+        isIgnoredAnnouncementTitle(item.title) ||
+        !isAnnouncementLink ||
+        seen.has(`${item.departmentId}-${item.title}`)
+      ) {
+        return false;
+      }
       seen.add(`${item.departmentId}-${item.title}`);
       return true;
     });
@@ -273,6 +419,18 @@ function absoluteUrl(value) {
 
 function isPdfUrl(value) {
   return decodeURIComponent(value || '').toLocaleLowerCase('tr-TR').includes('.pdf');
+}
+
+function isIgnoredAnnouncementTitle(value) {
+  const normalized = slugify(value);
+  return [
+    'ilan-portali',
+    'kvkk-aydinlatma-metni',
+    'iletisim',
+    'contact',
+    'jobs-portal',
+    'use-of-personal-data',
+  ].some((blocked) => normalized.includes(blocked));
 }
 
 function summarize(value) {

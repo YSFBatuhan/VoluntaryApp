@@ -1,5 +1,5 @@
 export const MENU_SPEECH_LANGUAGE = 'tr-TR';
-export const MENU_SPEECH_PROVIDER = 'webspeech';
+export const MENU_SPEECH_PROVIDER = 'elevenlabs';
 
 export function getSpeechLanguage(language) {
   if (language === 'en-US' || language === 'İngilizce' || language === 'Ingilizce') return 'en-US';

@@ -21,12 +21,12 @@ export default function Register() {
     setLoading(true);
     try {
       await register(form.email, form.password, form.name);
-      navigate('/dashboard');
+      navigate('/login');
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError('Bu e-posta adresi zaten kayıtlı.');
       } else {
-        setError('Kayıt sırasında bir hata oluştu. Tekrar deneyin.');
+        setError(err.message || 'Kayıt sırasında bir hata oluştu. Tekrar deneyin.');
       }
     }
     setLoading(false);
@@ -57,7 +57,7 @@ export default function Register() {
       <div className="auth-right">
         <div className="auth-card">
           <h2>Gönüllü Ol</h2>
-          <p className="auth-card-sub">Ücretsiz hesap oluştur, kayıt yapmaya başla.</p>
+          <p className="auth-card-sub">GTÜ e-posta adresinle hesap oluştur. Doğrulama bağlantısından sonra giriş yapabilirsin.</p>
 
           {error && <div className="auth-error">{error}</div>}
 

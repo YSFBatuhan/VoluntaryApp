@@ -36,6 +36,28 @@ export function validateAudioFile(file) {
   }
 }
 
+export function getAudioDurationSec(file) {
+  if (!file || typeof Audio === 'undefined' || typeof URL === 'undefined') {
+    return Promise.resolve(0);
+  }
+
+  return new Promise((resolve) => {
+    const audio = new Audio();
+    const objectUrl = URL.createObjectURL(file);
+
+    function cleanup(value = 0) {
+      URL.revokeObjectURL(objectUrl);
+      audio.removeAttribute('src');
+      resolve(Number.isFinite(value) ? Math.round(value) : 0);
+    }
+
+    audio.preload = 'metadata';
+    audio.onloadedmetadata = () => cleanup(audio.duration);
+    audio.onerror = () => cleanup(0);
+    audio.src = objectUrl;
+  });
+}
+
 export function formatBytes(bytes) {
   if (!bytes) return '0 MB';
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
@@ -49,6 +71,7 @@ export async function uploadAudioFile({ file, userId, onProgress }) {
   }
 
   const safeName = sanitizeFileName(file.name || `audio-${Date.now()}.webm`);
+  const durationSec = await getAudioDurationSec(file);
   const path = `audio_uploads/${userId}/${Date.now()}-${safeName}`;
   const fileRef = ref(storage, path);
   const metadata = {
@@ -77,6 +100,7 @@ export async function uploadAudioFile({ file, userId, onProgress }) {
           bytes: file.size,
           contentType: metadata.contentType,
           fileName: safeName,
+          durationSec,
         });
       },
     );

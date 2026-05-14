@@ -3,6 +3,7 @@ import {
   collection,
   doc,
   getDocs,
+  increment,
   limit,
   query,
   serverTimestamp,
@@ -15,6 +16,7 @@ import { buildKeywords, normalizeText } from './textUtils';
 
 export async function createAudioBook({ form, audioUpload, currentUser, userProfile }) {
   const chapterTitle = form.chapterTitle?.trim() || form.title?.trim() || 'Tek Kayıt';
+  const durationSec = Number(audioUpload.durationSec || 0);
 
   const bookRef = await addDoc(collection(db, 'books'), {
     title: form.title,
@@ -33,7 +35,7 @@ export async function createAudioBook({ form, audioUpload, currentUser, userProf
     status: 'pending',
     visibility: 'public',
     chapterCount: 1,
-    totalDurationSec: 0,
+    totalDurationSec: durationSec,
     createdBy: currentUser.uid,
     uploaderName: userProfile?.name || currentUser.displayName || 'Gönüllü',
     createdAt: serverTimestamp(),
@@ -46,7 +48,7 @@ export async function createAudioBook({ form, audioUpload, currentUser, userProf
     chapterTitle,
     chapterTitleLower: normalizeText(chapterTitle),
     status: 'pending',
-    durationSec: 0,
+    durationSec,
     readingMode: 'audio_file',
     audio: {
       provider: 'firebase_storage',
@@ -54,6 +56,7 @@ export async function createAudioBook({ form, audioUpload, currentUser, userProf
       publicId: audioUpload.path,
       format: audioUpload.contentType || 'audio',
       bytes: audioUpload.bytes || 0,
+      durationSec,
       bitrateKbps: 0,
       fileName: audioUpload.fileName || '',
     },
@@ -64,6 +67,69 @@ export async function createAudioBook({ form, audioUpload, currentUser, userProf
   });
 
   return bookRef.id;
+}
+
+export async function addAudioChapterToBook({
+  book,
+  form,
+  audioUpload,
+  currentUser,
+  userProfile,
+}) {
+  if (!book?.id) {
+    throw new Error('Bölüm eklenecek kitap bulunamadı.');
+  }
+
+  if (book.sourceType !== 'audio_upload' || book.readingMode !== 'audio_file') {
+    throw new Error('Yeni ses bölümü sadece sesli kitaplara eklenebilir.');
+  }
+
+  const chaptersSnapshot = await getDocs(
+    query(collection(db, 'chapters'), where('bookId', '==', book.id)),
+  );
+  const chapters = chaptersSnapshot.docs.map((chapterDoc) => chapterDoc.data());
+  const nextOrder = chapters.reduce((maxOrder, chapter) => Math.max(maxOrder, chapter.order || 0), 0) + 1;
+  const chapterTitle = form.chapterTitle?.trim() || `Bölüm ${nextOrder}`;
+  const durationSec = Number(audioUpload.durationSec || 0);
+  const batch = writeBatch(db);
+
+  batch.update(doc(db, 'books', book.id), {
+    status: 'pending',
+    reviewNote: '',
+    reviewedBy: '',
+    reviewedAt: null,
+    chapterCount: increment(1),
+    totalDurationSec: increment(durationSec),
+    updatedAt: serverTimestamp(),
+    resubmittedAt: serverTimestamp(),
+    createdBy: currentUser.uid,
+  });
+
+  batch.set(doc(collection(db, 'chapters')), {
+    bookId: book.id,
+    order: nextOrder,
+    chapterTitle,
+    chapterTitleLower: normalizeText(chapterTitle),
+    status: 'pending',
+    durationSec,
+    readingMode: 'audio_file',
+    audio: {
+      provider: 'firebase_storage',
+      url: audioUpload.url,
+      publicId: audioUpload.path,
+      format: audioUpload.contentType || 'audio',
+      bytes: audioUpload.bytes || 0,
+      durationSec,
+      bitrateKbps: 0,
+      fileName: audioUpload.fileName || '',
+    },
+    recordedBy: currentUser.uid,
+    recordedByName: userProfile?.name || currentUser.displayName || 'Gönüllü',
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+
+  await batch.commit();
 }
 
 export async function createPdfBook({ form, pdfInfo, currentUser, userProfile, publishImmediately }) {
@@ -343,6 +409,12 @@ export async function replaceBookAudioForReview({ bookId, ownerId, audioUpload }
     throw new Error('Bu kitap için güncellenecek ses bölümü bulunamadı.');
   }
 
+  const targetChapterDoc = chaptersSnapshot.docs
+    .map((chapterDoc) => ({ ref: chapterDoc.ref, data: chapterDoc.data() }))
+    .sort((a, b) => (a.data.order || 0) - (b.data.order || 0))[0];
+  const currentAudio = targetChapterDoc.data.audio || {};
+  const previousDurationSec = Number(targetChapterDoc.data.durationSec || currentAudio.durationSec || 0);
+  const nextDurationSec = Number(audioUpload.durationSec || 0);
   const batch = writeBatch(db);
   batch.update(bookRef, {
     status: 'pending',
@@ -350,28 +422,28 @@ export async function replaceBookAudioForReview({ bookId, ownerId, audioUpload }
     reviewedBy: '',
     reviewedAt: null,
     resubmittedAt: serverTimestamp(),
+    totalDurationSec: increment(nextDurationSec - previousDurationSec),
     updatedAt: serverTimestamp(),
     createdBy: ownerId,
   });
 
-  chaptersSnapshot.docs.forEach((chapterDoc) => {
-    const currentAudio = chapterDoc.data().audio || {};
-    batch.update(doc(db, 'chapters', chapterDoc.id), {
-      status: 'pending',
-      reviewNote: '',
-      reviewedBy: '',
-      reviewedAt: null,
-      audio: {
-        ...currentAudio,
-        provider: 'firebase_storage',
-        url: audioUpload.url,
-        publicId: audioUpload.path,
-        format: audioUpload.contentType || currentAudio.format || 'audio',
-        bytes: audioUpload.bytes || currentAudio.bytes || 0,
-        fileName: audioUpload.fileName || currentAudio.fileName || '',
-      },
-      updatedAt: serverTimestamp(),
-    });
+  batch.update(targetChapterDoc.ref, {
+    status: 'pending',
+    reviewNote: '',
+    reviewedBy: '',
+    reviewedAt: null,
+    audio: {
+      ...currentAudio,
+      provider: 'firebase_storage',
+      url: audioUpload.url,
+      publicId: audioUpload.path,
+      format: audioUpload.contentType || currentAudio.format || 'audio',
+      bytes: audioUpload.bytes || currentAudio.bytes || 0,
+      durationSec: nextDurationSec,
+      fileName: audioUpload.fileName || currentAudio.fileName || '',
+    },
+    durationSec: nextDurationSec,
+    updatedAt: serverTimestamp(),
   });
 
   await batch.commit();

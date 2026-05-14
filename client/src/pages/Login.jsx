@@ -16,8 +16,8 @@ export default function Login() {
     try {
       await login(form.email, form.password);
       navigate('/dashboard');
-    } catch {
-      setError('E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
+    } catch (err) {
+      setError(err.message || 'E-posta veya şifre hatalı. Lütfen tekrar deneyin.');
     }
     setLoading(false);
   }
@@ -47,7 +47,7 @@ export default function Login() {
       <div className="auth-right">
         <div className="auth-card">
           <h2>Giriş Yap</h2>
-          <p className="auth-card-sub">Gönüllü hesabına hoş geldin.</p>
+          <p className="auth-card-sub">GTÜ e-posta adresinle gönüllü hesabına giriş yap.</p>
 
           {error && <div className="auth-error">{error}</div>}
 

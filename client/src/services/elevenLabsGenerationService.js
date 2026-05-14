@@ -1,13 +1,17 @@
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import app from '../firebase/config';
+import { GTU_DEPARTMENTS } from '../data/gtuAnnouncements';
 
 const functions = getFunctions(app);
 const generateCachedSpeechCallable = httpsCallable(functions, 'generateCachedSpeech');
+const GTU_DEPARTMENT_PROMPT_TEXT = GTU_DEPARTMENTS
+  .map((department, index) => `${index + 1}. ${department.name}`)
+  .join('. ');
 
 export const MENU_SPEECH_PROMPTS = [
   {
-    id: 'welcome',
-    label: 'Açılış karşılama',
+    id: 'blind_welcome',
+    label: 'Dinleyici ekranı açılışı',
     text: 'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Yardım almak için yardım deyin.',
   },
   {
@@ -88,7 +92,7 @@ export const MENU_SPEECH_PROMPTS = [
   {
     id: 'announcements_mode',
     label: 'Duyurular modu',
-    text: 'GTÜ duyuruları modu açıldı. Bölüm seçmek için sırayı ya da bölüm adını söyleyin.',
+    text: `GTÜ duyuruları modu açıldı. ${GTU_DEPARTMENT_PROMPT_TEXT}. Bölüm seçmek için 1, 2 gibi sırasını; ya da Bilgisayar, Matematik gibi bölüm adını söyleyin.`,
   },
   {
     id: 'no_department_announcements',
@@ -194,6 +198,26 @@ export async function generateCachedMenuSpeech(prompt, options = {}) {
     promptId: prompt.id,
     model: options.model,
     voiceId: options.voiceId,
+  });
+
+  return result.data;
+}
+
+export async function generateCachedDynamicSpeech({
+  text,
+  language = 'tr-TR',
+  model,
+  voiceId,
+  announcementId = '',
+  announcementVariant = 'summary',
+} = {}) {
+  const result = await generateCachedSpeechCallable({
+    text,
+    language,
+    model,
+    voiceId,
+    announcementId,
+    announcementVariant,
   });
 
   return result.data;

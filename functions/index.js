@@ -31,12 +31,6 @@ exports.generateCachedSpeech = onCall(
     memory: '512MiB',
   },
   async (request) => {
-    if (!request.auth?.uid) {
-      throw new HttpsError('unauthenticated', 'Giris yapmadan premium ses uretilemez.');
-    }
-
-    await assertAdmin(request.auth.uid);
-
     const {
       text,
       language = 'tr-TR',
@@ -46,6 +40,12 @@ exports.generateCachedSpeech = onCall(
       model,
       voiceId,
     } = request.data || {};
+
+    if (!request.auth?.uid) {
+      throw new HttpsError('unauthenticated', 'Giris yapmadan premium ses uretilemez.');
+    }
+
+    await assertAdmin(request.auth.uid);
 
     const normalizedText = normalizeSpeechText(text);
     if (!normalizedText) {
