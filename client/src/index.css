@@ -864,10 +864,12 @@ body {
 .entry-page {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.1fr);
   align-items: stretch;
-  background: #050704;
-  color: #ffffff;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(155, 169, 134, 0.18), transparent 32%),
+    linear-gradient(180deg, #ffffff 0%, #f5f7ee 100%);
+  color: var(--color-text-dark);
 }
 
 .entry-hero {
@@ -876,6 +878,8 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 1.15rem;
+  background: #ffffff;
+  border-right: 1px solid var(--panel-border);
 }
 
 .entry-brand {
@@ -893,30 +897,31 @@ body {
 .entry-brand strong {
   font-size: 1.4rem;
   font-weight: 900;
+  color: var(--color-text-dark);
 }
 
 .entry-brand small {
-  color: #c7d7bd;
+  color: var(--color-text-muted);
   font-weight: 700;
   font-size: 0.82rem;
 }
 
 .entry-kicker {
-  color: #fff04d;
+  color: var(--color-primary-dark);
   font-weight: 900;
   margin: 0;
 }
 
 .entry-page h1 {
-  color: #ffffff;
-  font-size: clamp(2.5rem, 6vw, 5rem);
-  line-height: 0.98;
+  color: var(--color-text-dark);
+  font-size: clamp(2.6rem, 5vw, 4.8rem);
+  line-height: 1;
   margin: 0;
   max-width: 760px;
 }
 
 .entry-status {
-  color: #fff9b8;
+  color: var(--color-text-muted);
   font-size: clamp(1.1rem, 2vw, 1.45rem);
   line-height: 1.55;
   max-width: 720px;
@@ -942,59 +947,66 @@ body {
 .entry-help-button {
   min-height: 58px;
   padding: 0 1.1rem;
-  border: 3px solid #fff04d;
+  border: 1.5px solid var(--color-primary);
   font-weight: 900;
   font-size: 1rem;
 }
 
 .entry-voice-button {
-  background: #fff04d;
-  color: #050704;
+  background: var(--color-primary);
+  color: #ffffff;
 }
 
 .entry-help-button {
-  background: transparent;
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--color-text-dark);
 }
 
 .entry-choice-grid {
   display: grid;
   grid-template-rows: 1fr 1fr;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  gap: clamp(1rem, 2vw, 1.5rem);
 }
 
 .entry-choice-card {
-  border: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--panel-border);
   padding: clamp(1.5rem, 5vw, 4rem);
-  color: #ffffff;
+  color: var(--color-text-dark);
   display: grid;
   align-content: center;
   justify-items: start;
   gap: 0.75rem;
   text-align: left;
-  transition: transform 0.2s, filter 0.2s;
+  min-height: 0;
+  box-shadow: 0 18px 44px rgba(34, 50, 41, 0.06);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 .entry-choice-card:hover,
 .entry-choice-card:focus-visible {
-  filter: brightness(1.08);
+  border-color: var(--color-primary);
+  box-shadow: 0 22px 55px rgba(34, 50, 41, 0.12);
+  transform: translateY(-2px);
 }
 
 .entry-choice-card:focus-visible,
 .entry-voice-button:focus-visible,
 .entry-help-button:focus-visible {
-  outline: 6px solid #ffffff;
-  outline-offset: -6px;
+  outline: 4px solid rgba(155, 169, 134, 0.35);
+  outline-offset: 3px;
 }
 
 .entry-choice-card.listener {
-  background: #fff04d;
-  color: #050704;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.24), transparent 28%),
+    linear-gradient(135deg, #7f956d 0%, #9ba986 100%);
+  color: #ffffff;
 }
 
 .entry-choice-card.volunteer {
   background: #ffffff;
-  color: #223229;
+  color: var(--color-text-dark);
 }
 
 .entry-choice-card span {
@@ -1004,9 +1016,14 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(5, 7, 4, 0.12);
+  background: rgba(34, 50, 41, 0.08);
   font-size: 1.45rem;
   font-weight: 900;
+}
+
+.entry-choice-card.listener span {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
 }
 
 .entry-choice-card strong {
@@ -1019,6 +1036,8 @@ body {
   font-size: clamp(1rem, 1.5vw, 1.2rem);
   line-height: 1.5;
   font-weight: 800;
+  color: inherit;
+  opacity: 0.82;
 }
 
 /* ============================
@@ -3126,10 +3145,13 @@ textarea {
 @media (max-width: 920px) {
   .entry-page {
     grid-template-columns: 1fr;
+    background: #f5f7ee;
   }
 
   .entry-hero {
     min-height: 48dvh;
+    border-right: 0;
+    border-bottom: 1px solid var(--panel-border);
   }
 
   .entry-choice-grid {
@@ -3139,8 +3161,6 @@ textarea {
 
   .entry-choice-card {
     min-height: 220px;
-    border-left: 0;
-    border-top: 1px solid rgba(5, 7, 4, 0.14);
   }
 
   .auth-page {
