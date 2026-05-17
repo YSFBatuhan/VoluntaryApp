@@ -49,15 +49,12 @@ const MOCK_BOOKS = [
 const WELCOME_MESSAGE =
   'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Son mesajı yeniden duymak için tekrar et, yardım almak için yardım deyin.';
 
-const IDLE_REMINDER_DELAY_MS = 45000;
 const DYNAMIC_SPEECH_FALLBACK_MS = 1200;
 const ACTIVATION_MESSAGE =
   'Duyum açıldı. Komut vermek için ekrana tekrar dokunun veya Enter tuşuna basın. Yardım için yardım deyin.';
 
 const COMMAND_HELP_TEXT =
   'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurulara geçmek için duyurular deyin. Bölüm seçmek için Bilgisayar duyuruları veya Matematik duyuruları diyebilirsiniz. Duyuru listesinden bir duyuru açmak için birinciyi aç, ikinciyi aç veya başlıktan bir kelime söyleyin. Açılan duyuruda kısa metin için özet oku, tam metin için detay oku deyin. Duyurular arasında gezinmek için sonraki duyuru veya önceki duyuru deyin. Son mesajı yeniden duymak için tekrar et deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.';
-
-const BLIND_INTERFACE_KEY = 'echovoices:blind-interface-mode';
 
 const recognitionConstructor =
   typeof window !== 'undefined'
@@ -98,7 +95,7 @@ function getPlaybackMode(book) {
 }
 
 export default function BlindMode() {
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser } = useAuth();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState(WELCOME_MESSAGE);
   const [books, setBooks] = useState(MOCK_BOOKS);
@@ -117,14 +114,6 @@ export default function BlindMode() {
   const [cachedSpeechReady, setCachedSpeechReady] = useState(true);
   const [isWelcomeActive, setIsWelcomeActive] = useState(true);
   const [hasUserActivatedAudio, setHasUserActivatedAudio] = useState(false);
-  const [storedBlindInterfaceMode] = useState(() =>
-    localStorage.getItem(BLIND_INTERFACE_KEY) || 'simple',
-  );
-  const profileBlindInterfaceMode = userProfile?.blindInterfaceMode;
-  const blindInterfaceMode =
-    profileBlindInterfaceMode === 'simple' || profileBlindInterfaceMode === 'standard'
-      ? profileBlindInterfaceMode
-      : storedBlindInterfaceMode;
   const [speechSupported] = useState(() => 'speechSynthesis' in window);
   const [recognitionSupported] = useState(Boolean(recognitionConstructor));
   const recognitionRef = useRef(null);
@@ -389,13 +378,6 @@ export default function BlindMode() {
 
   function scheduleIdleReminder() {
     clearIdleReminder();
-    if (!welcomeCompletedRef.current || isPlayingRef.current || isListeningRef.current) return;
-
-    idleReminderTimerRef.current = window.setTimeout(() => {
-      if (!welcomeCompletedRef.current || isPlayingRef.current || isListeningRef.current) return;
-      speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome, allowDynamicSpeech: false });
-      scheduleIdleReminder();
-    }, IDLE_REMINDER_DELAY_MS);
   }
 
   function registerUserActivity() {
@@ -423,10 +405,7 @@ export default function BlindMode() {
     stopPromptAudio();
     window.speechSynthesis?.cancel();
     finishWelcome();
-    speakMenu(ACTIVATION_MESSAGE, {
-      allowDynamicSpeech: false,
-      skipHistory: true,
-    });
+    setStatus(ACTIVATION_MESSAGE);
     return false;
   }
 
@@ -599,7 +578,6 @@ export default function BlindMode() {
   }
 
   function maybeSaveAudioProgress(book, chapterId, positionSec, { force = false } = {}) {
-    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     if (!force && now - lastProgressSaveRef.current < 15000) return;
 
@@ -1651,6 +1629,50 @@ export default function BlindMode() {
     playAudioBook(selectedBook);
   }
 
+  function pickBestTranscript(alternatives) {
+    if (!alternatives.length) return '';
+
+    const scored = alternatives.map((transcript, index) => {
+      const command = parseVoiceCommand(transcript);
+      const normalizedTranscript = command.normalized || normalizeText(transcript);
+      let score = Math.max(0, 3 - index);
+
+      if (command.intent) score += 5;
+      if (command.numericIndex !== null || command.ordinalIndex !== null) score += 3;
+      if (command.pageNumber !== null) score += 3;
+
+      const matchedBook = books.some((book) => {
+        const searchableText = normalizeText(
+          `${book.title} ${book.author || ''} ${book.category || ''} ${book.chapterTitle || ''}`,
+        );
+        return searchableText.includes(normalizedTranscript)
+          || getFuzzyMatchScore(normalizedTranscript, searchableText) >= 3;
+      });
+      if (matchedBook) score += 4;
+
+      if (mode === 'announcements') {
+        const matchedDepartment = GTU_DEPARTMENTS.some((department) => {
+          const searchableText = normalizeText(`${department.name} ${department.keywords.join(' ')}`);
+          return searchableText.includes(normalizedTranscript)
+            || getFuzzyMatchScore(normalizedTranscript, searchableText) >= 3;
+        });
+        if (matchedDepartment) score += 4;
+
+        if (selectedDepartment) {
+          const matchedAnnouncement = departmentAnnouncements.some((announcement) =>
+            normalizeText(announcement.title).includes(normalizedTranscript),
+          );
+          if (matchedAnnouncement) score += 4;
+        }
+      }
+
+      return { transcript, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    return scored[0].transcript;
+  }
+
   function startListening() {
     if (!activateAudioSession()) return;
     if (!runAfterWelcome(startListening)) return;
@@ -1671,7 +1693,7 @@ export default function BlindMode() {
     const recognition = new recognitionConstructor();
     recognition.lang = 'tr-TR';
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    recognition.maxAlternatives = 3;
     recognitionRef.current = recognition;
 
     recognition.onstart = () => {
@@ -1697,7 +1719,10 @@ export default function BlindMode() {
     };
 
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+      const alternatives = Array.from(event.results[0] || [])
+        .map(result => result.transcript)
+        .filter(Boolean);
+      const transcript = pickBestTranscript(alternatives);
       setQuery(transcript);
       handleCommand(transcript);
     };
@@ -1763,21 +1788,15 @@ export default function BlindMode() {
   useEffect(() => {
     if (!cachedSpeechReady) return;
 
-    let welcomeWatchdog = null;
     const welcomeTimer = window.setTimeout(() => {
       setIsWelcomeActive(true);
       giveFeedback('focus');
-      speakMenu(WELCOME_MESSAGE, {
-        promptId: MENU_PROMPTS.welcome,
-        allowDynamicSpeech: false,
-        onEnd: finishWelcome,
-      });
-      welcomeWatchdog = window.setTimeout(finishWelcome, 22000);
+      setStatus(WELCOME_MESSAGE);
+      finishWelcome();
     }, 0);
 
     return () => {
       window.clearTimeout(welcomeTimer);
-      if (welcomeWatchdog) window.clearTimeout(welcomeWatchdog);
       clearIdleReminder();
       playbackTokenRef.current += 1;
       stopPromptAudio();
@@ -1787,7 +1806,7 @@ export default function BlindMode() {
       window.speechSynthesis?.cancel();
       recognitionRef.current?.abort();
     };
-    // Welcome prompt should run once after cached prompt configuration is ready.
+    // Welcome is visual-only on startup; user audio starts after explicit interaction.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cachedSpeechReady, speechSupported]);
 
@@ -1798,13 +1817,6 @@ export default function BlindMode() {
     // Idle reminder should reflect current playback and listening states.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, isListening]);
-
-  useEffect(() => {
-    const nextMode = userProfile?.blindInterfaceMode;
-    if (nextMode === 'simple' || nextMode === 'standard') {
-      localStorage.setItem(BLIND_INTERFACE_KEY, nextMode);
-    }
-  }, [userProfile?.blindInterfaceMode]);
 
   useEffect(() => {
     function handleKeyboard(event) {
@@ -1873,7 +1885,8 @@ export default function BlindMode() {
     };
   });
 
-  if (blindInterfaceMode === 'simple') {
+  const showStandardBlindMode = false;
+  const simplePage = (() => {
     const simplePageClassName = [
       'blind-page',
       'blind-page-simple',
@@ -1915,7 +1928,9 @@ export default function BlindMode() {
         </p>
       </main>
     );
-  }
+  })();
+
+  if (!showStandardBlindMode) return simplePage;
 
   return (
     <main className="blind-page">
