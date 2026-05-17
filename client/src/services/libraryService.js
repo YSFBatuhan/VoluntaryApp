@@ -590,11 +590,9 @@ export async function upsertPublicAppConfig() {
   await setDoc(
     doc(db, 'app_config', 'public'),
     {
-      blindMode: {
-        welcomeMessage: 'Duyum dinleme moduna hoş geldiniz.',
-        defaultSpeechRate: 0.9,
+      listeningLibrary: {
         maxBooksPerPage: 20,
-        voiceCommandsEnabled: true,
+        naturalAudioRequired: true,
       },
       uploadLimits: {
         maxAudioBytes: 26_214_400,

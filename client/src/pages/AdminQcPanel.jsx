@@ -473,14 +473,14 @@ function getNaturalAudioText(book) {
   }
 
   if (book.naturalAudio?.status === 'ready') {
-    return 'Bu kitap için doğal ses hazır. Dinleyici tarafı Web Speech yerine hazır sesleri oynatır.';
+    return 'Bu kitap için doğal ses hazır. Yayında hazır ses dosyaları oynatılır.';
   }
 
   if (book.naturalAudio?.status === 'queued') {
     return 'Kitap yerel doğal ses worker kuyruğunda. Worker çalıştığında ses dosyaları üretilip Storage’a yüklenecek.';
   }
 
-  return 'PDF yayınlanırken doğal ses kuyruğuna alınabilir. Ses hazır olana kadar Web Speech fallback kullanılır.';
+  return 'PDF yayınlanırken doğal ses kuyruğuna alınabilir. Ses hazır olana kadar içerik beklemede tutulur.';
 }
 
 function formatSource(book) {
@@ -524,12 +524,12 @@ function getPremiumTtsTone(book) {
 // eslint-disable-next-line no-unused-vars
 function getPremiumTtsText(book) {
   if (book.sourceType !== 'pdf') {
-    return 'Premium TTS önceliği PDF metinlerinden üretilecek kitaplarda kullanılacak.';
+    return 'Doğal ses üretimi önceliği PDF metinlerinden üretilecek kitaplarda kullanılacak.';
   }
 
   if (book.premiumTts?.status === 'ready') {
-    return 'Bu kitap için premium ses hazır görünüyor. Dinleyici tarafında ses oynatma aktif edilebilir.';
+    return 'Bu kitap için hazır ses görünüyor. Yayında ses oynatma aktif edilebilir.';
   }
 
-  return 'ElevenLabs premium ses üretimi için backend/proxy ve Storage cache hazır olmalı. Şimdilik Web Speech fallback kullanılacak.';
+  return 'Ses üretimi için backend/proxy ve Storage cache hazır olmalı. Hazır ses oluşmadan yayın akışı tamamlanmaz.';
 }

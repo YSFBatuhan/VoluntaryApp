@@ -508,7 +508,7 @@ function PdfForm({
     <div className="upload-grid">
       <div className="card upload-form-card">
         <h3>PDF ile Kitap Ekle</h3>
-        <p className="form-intro">Bugünkü ana akış budur: seçilebilir metinli PDF yüklenir, sistem metni parçalara ayırır ve admin onayından sonra Blind Mode ücretsiz TTS ile okur.</p>
+        <p className="form-intro">Bugünkü ana akış budur: seçilebilir metinli PDF yüklenir, sistem metni parçalara ayırır ve admin onayından sonra doğal ses üretimi için kuyruğa alınır.</p>
         {error && <div className="auth-error">{error}</div>}
         {successMsg && <div className="success-msg">{successMsg}</div>}
 

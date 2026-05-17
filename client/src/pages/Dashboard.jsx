@@ -47,7 +47,7 @@ export default function Dashboard() {
         <div>
           <span className="dashboard-kicker">Ana sayfa</span>
           <h1>Merhaba, {userProfile?.name || currentUser?.displayName || 'gönüllü'}.</h1>
-          <p>Bugünkü ana akış PDF/TTS: seçilebilir metinli PDF ekle, admin onaylasın, Blind Mode ücretsiz seslendirsin.</p>
+          <p>Bugünkü ana akış: seçilebilir metinli PDF ekle, admin onaylasın, doğal ses üretimi ve cache süreciyle yayına hazırlansın.</p>
         </div>
         <div className="dashboard-hero-actions">
           <button className="btn-sage" type="button" onClick={() => navigate('/books')}>PDF Ekle</button>

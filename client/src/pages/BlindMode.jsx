@@ -5,6 +5,7 @@ import { getReadingProgress, saveReadingProgress } from '../services/progressSer
 import {
   createCachedSpeechAudio,
   getCachedAnnouncementAudioUrl,
+  getAnnouncementAudioStatus,
   getCachedMenuAudioUrl,
   loadAnnouncementAudioCache,
   loadCachedSpeechConfig,
@@ -49,7 +50,6 @@ const MOCK_BOOKS = [
 const WELCOME_MESSAGE =
   'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Son mesajı yeniden duymak için tekrar et, yardım almak için yardım deyin.';
 
-const DYNAMIC_SPEECH_FALLBACK_MS = 1200;
 const ACTIVATION_MESSAGE =
   'Duyum açıldı. Komut vermek için ekrana tekrar dokunun veya Enter tuşuna basın. Yardım için yardım deyin.';
 
@@ -114,6 +114,7 @@ export default function BlindMode() {
   const [cachedSpeechReady, setCachedSpeechReady] = useState(true);
   const [isWelcomeActive, setIsWelcomeActive] = useState(true);
   const [hasUserActivatedAudio, setHasUserActivatedAudio] = useState(false);
+  const [touchFallbackActive, setTouchFallbackActive] = useState(false);
   const [speechSupported] = useState(() => 'speechSynthesis' in window);
   const [recognitionSupported] = useState(Boolean(recognitionConstructor));
   const recognitionRef = useRef(null);
@@ -131,6 +132,13 @@ export default function BlindMode() {
   const idleReminderTimerRef = useRef(null);
   const isPlayingRef = useRef(false);
   const isListeningRef = useRef(false);
+  const hasUserActivatedAudioRef = useRef(false);
+  const touchClickTimerRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const longPressHandledRef = useRef(false);
+  const pointerStartRef = useRef(null);
+  const lastTapRef = useRef({ time: 0, x: 0, y: 0 });
+  const dynamicSpeechUnavailableRef = useRef(false);
   const lastSpokenMessageRef = useRef(WELCOME_MESSAGE);
   const libraryLoadingAnnouncedRef = useRef(false);
 
@@ -164,12 +172,14 @@ export default function BlindMode() {
   }, [selectedDepartment]);
 
   function vibrate(pattern) {
-    if ('vibrate' in navigator) {
+    if (hasUserActivatedAudioRef.current && 'vibrate' in navigator) {
       navigator.vibrate(pattern);
     }
   }
 
   function playTone(type = 'focus') {
+    if (!hasUserActivatedAudioRef.current) return;
+
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
 
@@ -232,12 +242,11 @@ export default function BlindMode() {
   }
 
   async function playGeneratedSpeech(message, language, fallback, options = {}) {
-    if (!options.allowDynamicSpeech) {
+    if (!options.allowDynamicSpeech || dynamicSpeechUnavailableRef.current) {
       fallback();
       return;
     }
 
-    let fallbackTimer = null;
     let fallbackUsed = false;
     startProcessingFeedback();
 
@@ -250,7 +259,6 @@ export default function BlindMode() {
     };
 
     try {
-      fallbackTimer = window.setTimeout(playFallbackSpeech, DYNAMIC_SPEECH_FALLBACK_MS);
       const result = await generateCachedDynamicSpeech({
         text: message,
         language,
@@ -259,7 +267,6 @@ export default function BlindMode() {
         publicPromptId: options.publicPromptId,
       });
 
-      if (fallbackTimer) window.clearTimeout(fallbackTimer);
       stopProcessingFeedback();
       if (fallbackUsed) return;
       if (options.requestToken !== speechRequestTokenRef.current) return;
@@ -268,16 +275,29 @@ export default function BlindMode() {
         playCachedSpeech(result.audioUrl, fallback, options);
         return;
       }
-    } catch {
-      // Missing quota, config, or provider access should not break the listener screen.
+    } catch (error) {
+      if (isDynamicSpeechAccessError(error)) {
+        dynamicSpeechUnavailableRef.current = true;
+      }
     } finally {
-      if (fallbackTimer) window.clearTimeout(fallbackTimer);
       stopProcessingFeedback();
     }
 
     if (fallbackUsed) return;
     if (options.requestToken !== speechRequestTokenRef.current) return;
     playFallbackSpeech();
+  }
+
+  function isDynamicSpeechAccessError(error) {
+    const code = String(error?.code || '').toLowerCase();
+    const message = String(error?.message || '').toLowerCase();
+    return code.includes('permission-denied')
+      || code.includes('unauthenticated')
+      || code.includes('failed-precondition')
+      || message.includes('403')
+      || message.includes('elevenlabs uretimi')
+      || message.includes('kapali')
+      || message.includes('kapalı');
   }
 
   function speak(message, language = 'tr-TR', options = {}) {
@@ -398,20 +418,191 @@ export default function BlindMode() {
   }
 
   function activateAudioSession() {
-    if (hasUserActivatedAudio) return true;
+    if (hasUserActivatedAudioRef.current || hasUserActivatedAudio) return true;
 
+    hasUserActivatedAudioRef.current = true;
     setHasUserActivatedAudio(true);
     giveFeedback('success');
     stopPromptAudio();
     window.speechSynthesis?.cancel();
-    finishWelcome();
     setStatus(ACTIVATION_MESSAGE);
-    return false;
+    return true;
   }
 
-  function handlePrimaryTouch() {
+  function handlePrimaryTouch(direction = 'center') {
     if (!activateAudioSession()) return;
+
+    if (!welcomeCompletedRef.current) {
+      setIsWelcomeActive(true);
+      speakMenu(WELCOME_MESSAGE, {
+        promptId: MENU_PROMPTS.welcome,
+        onEnd: finishWelcome,
+      });
+      return;
+    }
+
+    if (direction === 'previous') {
+      handleFallbackStep(-1);
+      return;
+    }
+
+    if (direction === 'next') {
+      handleFallbackStep(1);
+      return;
+    }
+
+    if (!recognitionSupported) {
+      handleFallbackConfirm();
+      return;
+    }
+
     startListening();
+  }
+
+  function getTapDirectionFromPoint(target, originElement, clientX) {
+    if (originElement?.closest?.('.blind-simple-mic-button')) return 'center';
+
+    const rect = target?.getBoundingClientRect?.();
+    const width = rect?.width || window.innerWidth || 1;
+    const x = rect ? clientX - rect.left : clientX;
+    if (x < width * 0.34) return 'previous';
+    if (x > width * 0.66) return 'next';
+    return 'center';
+  }
+
+  function handlePrimaryDoubleTap() {
+    if (touchClickTimerRef.current) {
+      window.clearTimeout(touchClickTimerRef.current);
+      touchClickTimerRef.current = null;
+    }
+
+    if (!activateAudioSession()) return;
+    if (!welcomeCompletedRef.current) {
+      handlePrimaryTouch('center');
+      return;
+    }
+
+    handleFallbackConfirm();
+  }
+
+  function handlePrimaryPointerDown(event) {
+    longPressHandledRef.current = false;
+    pointerStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      time: Date.now(),
+      target: event.currentTarget,
+      originElement: event.target,
+    };
+
+    if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressHandledRef.current = true;
+      if (!activateAudioSession()) return;
+      if (!welcomeCompletedRef.current) {
+        handlePrimaryTouch('center');
+        return;
+      }
+      repeatLastMessage();
+    }, 850);
+  }
+
+  function clearPointerGesture() {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    pointerStartRef.current = null;
+  }
+
+  function handlePrimaryPointerUp(event) {
+    if (longPressTimerRef.current) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
+    const pointerStart = pointerStartRef.current;
+    pointerStartRef.current = null;
+
+    if (longPressHandledRef.current) {
+      longPressHandledRef.current = false;
+      return;
+    }
+
+    if (!pointerStart) return;
+
+    const now = Date.now();
+    const moved = Math.hypot(event.clientX - pointerStart.x, event.clientY - pointerStart.y);
+    if (moved > 24) return;
+
+    const lastTap = lastTapRef.current;
+    const isDoubleTap =
+      now - lastTap.time < 360 &&
+      Math.hypot(event.clientX - lastTap.x, event.clientY - lastTap.y) < 42;
+
+    if (isDoubleTap) {
+      lastTapRef.current = { time: 0, x: 0, y: 0 };
+      handlePrimaryDoubleTap();
+      return;
+    }
+
+    lastTapRef.current = { time: now, x: event.clientX, y: event.clientY };
+    const direction = getTapDirectionFromPoint(pointerStart.target, pointerStart.originElement, event.clientX);
+    if (touchClickTimerRef.current) window.clearTimeout(touchClickTimerRef.current);
+    touchClickTimerRef.current = window.setTimeout(() => {
+      touchClickTimerRef.current = null;
+      handlePrimaryTouch(direction);
+    }, 370);
+  }
+
+  function activateTouchFallback(reason = '') {
+    setTouchFallbackActive(true);
+    const reasonText = reason ? `${reason} ` : '';
+    speakMenu(`${reasonText}Dokunarak kullanım açıldı. Sağ taraf sıradaki seçeneği, sol taraf önceki seçeneği okur. Ortadaki mikrofon alanı sesli komut dinler. Çift dokunma seçili içeriği açar veya oynatır. Uzun basma son mesajı tekrar eder.`);
+  }
+
+  function handleFallbackStep(step) {
+    if (!runAfterWelcome(() => handleFallbackStep(step))) return;
+    setTouchFallbackActive(true);
+
+    if (mode === 'announcements') {
+      if (!selectedDepartment) {
+        selectDepartmentByIndex(getSelectedDepartmentIndex() + step);
+        return;
+      }
+
+      if (!selectedAnnouncement) {
+        selectAnnouncementByIndex(getSelectedAnnouncementIndex() + step);
+        return;
+      }
+
+      selectAnnouncementByIndex(getSelectedAnnouncementIndex() + step);
+      return;
+    }
+
+    selectBookByIndex(getSelectedBookIndex() + step);
+  }
+
+  function handleFallbackConfirm() {
+    if (!runAfterWelcome(handleFallbackConfirm)) return;
+    setTouchFallbackActive(true);
+
+    if (mode === 'announcements') {
+      if (!selectedDepartment) {
+        selectDepartmentByIndex(getSelectedDepartmentIndex());
+        return;
+      }
+
+      if (!selectedAnnouncement) {
+        selectAnnouncementByIndex(getSelectedAnnouncementIndex());
+        return;
+      }
+
+      readSelectedAnnouncementDetail();
+      return;
+    }
+
+    togglePlayback();
   }
 
   function repeatLastMessage() {
@@ -769,7 +960,10 @@ export default function BlindMode() {
     stopAudioPlayback({ resetPosition: true });
     window.speechSynthesis?.cancel();
     giveFeedback('success');
-    speakMenu(`${book.title} bulundu. ${book.chapterTitle || 'Tam metin'} seçildi.`);
+    speakMenu(`${book.title} bulundu. ${book.chapterTitle || 'Tam metin'} seçildi.`, {
+      allowDynamicSpeech: true,
+      publicPromptId: `blind_menu_book_${sanitizePromptKey(book.id || book.title)}_selected`,
+    });
   }
 
   async function goToTextChunk(targetIndex, autoPlay = false) {
@@ -966,8 +1160,12 @@ export default function BlindMode() {
       ? 'Komutlar: Özete dönmek için özet oku, sonraki duyuru için sonraki duyuru, önceki duyuru için önceki duyuru, bölüm listesine dönmek için geri dön deyin.'
       : 'Komutlar: Tam metni okumak için detay oku, sonraki duyuru için sonraki duyuru, önceki duyuru için önceki duyuru, bölüm listesine dönmek için geri dön deyin.';
     const detailText = `${getAnnouncementSpeechText(announcement, { readFullDetail })} ${navigationHint}`;
+    const cachedAudioUrl = getCachedAnnouncementAudioUrl(announcement, { readFullDetail });
+    if (!cachedAudioUrl) {
+      setStatus(`${announcement.title}. Hazır ${readFullDetail ? 'detay' : 'özet'} sesi bulunamadı, anlık ses üretimi deneniyor.`);
+    }
     speak(detailText, announcement.language || 'tr-TR', {
-      cachedAudioUrl: getCachedAnnouncementAudioUrl(announcement, { readFullDetail }),
+      cachedAudioUrl,
       allowDynamicSpeech: true,
       announcementId: announcement.id,
       announcementVariant: readFullDetail ? 'detail' : 'summary',
@@ -993,6 +1191,14 @@ export default function BlindMode() {
     return candidates
       .map((value) => String(value || '').trim())
       .find((value) => value && !isMissingAnnouncementContent(value)) || '';
+  }
+
+  function formatAnnouncementAudioStatus(announcement) {
+    const status = getAnnouncementAudioStatus(announcement);
+    if (status.summaryReady && status.detailReady) return 'özet ve detay sesi hazır';
+    if (status.summaryReady) return 'özet sesi hazır, detay sesi eksik';
+    if (status.detailReady) return 'detay sesi hazır, özet sesi eksik';
+    return 'hazır ses yok, anlık üretim denenecek';
   }
 
   function isMissingAnnouncementContent(value) {
@@ -1129,7 +1335,7 @@ export default function BlindMode() {
     const author = book.author ? `Yazar: ${book.author}.` : 'Yazar belirtilmemiş.';
     const readingType = hasNaturalAudio(book)
       ? 'PDF metninden üretilmiş doğal ses'
-      : (book.readingMode === 'tts_text' ? 'PDF metin, Web Speech ile okunacak' : 'sesli kitap');
+      : (book.readingMode === 'tts_text' ? 'PDF metni doğal ses üretimi bekliyor' : 'sesli kitap');
     const language = getReadableLanguage(book.language);
     return `${book.title}. Tür: ${category}. ${author} Okuma tipi: ${readingType}. Dil: ${language}`;
   }
@@ -1676,18 +1882,32 @@ export default function BlindMode() {
   function startListening() {
     if (!activateAudioSession()) return;
     if (!runAfterWelcome(startListening)) return;
+    if (isListeningRef.current) return;
 
     if (!recognitionSupported) {
       giveFeedback('error');
-      speakMenu('Bu tarayıcı sesli komutu desteklemiyor. Klavyede H tuşu yardım rehberini, Space seçili kitabı dinlemeyi, sağ ve sol oklar ileri geri gitmeyi sağlar. Yazılı arama kutusu standart arayüzde kullanılabilir.', {
-        promptId: MENU_PROMPTS.speechUnsupported,
-      });
+      activateTouchFallback('Bu tarayıcı sesli komutu desteklemiyor.');
       return;
     }
 
     playbackTokenRef.current += 1;
     stopAudioPlayback();
     window.speechSynthesis?.cancel();
+    recognitionRef.current?.abort();
+    showStatus('Mikrofon hazırlanıyor.');
+
+    speakMenu('Sizi dinliyorum.', {
+      promptId: MENU_PROMPTS.microphoneListening,
+      allowDynamicSpeech: true,
+      skipHistory: true,
+      onEnd: beginSpeechRecognition,
+    });
+  }
+
+  function beginSpeechRecognition() {
+    if (!recognitionSupported) return;
+    if (isListeningRef.current) return;
+
     recognitionRef.current?.abort();
 
     const recognition = new recognitionConstructor();
@@ -1710,7 +1930,8 @@ export default function BlindMode() {
         `Sesli komut çalışmadı. Hata kodu: ${event.error || 'bilinmiyor'}. Yazılı aramayı kullanabilirsiniz.`;
       const promptId = RECOGNITION_ERROR_PROMPTS[event.error];
       giveFeedback('error');
-      speakMenu(`${errorMessage} Klavyede H yardım, Space dinle veya duraklat, sağ ve sol oklar ileri geri gitmek içindir. Tekrar denemek için ekrana dokunun.`, promptId ? { promptId } : {});
+      setTouchFallbackActive(true);
+      speakMenu(`${errorMessage} Dokunarak kullanım açıldı. Sağ taraf sıradaki seçeneği, sol taraf önceki seçeneği okur. Ortadaki mikrofon alanı sesli komutu tekrar dener. Çift dokunma seçili içeriği açar veya oynatır. Uzun basma son mesajı tekrar eder.`, promptId ? { promptId } : {});
     };
 
     recognition.onend = () => {
@@ -1723,6 +1944,7 @@ export default function BlindMode() {
         .map(result => result.transcript)
         .filter(Boolean);
       const transcript = pickBestTranscript(alternatives);
+      setTouchFallbackActive(false);
       setQuery(transcript);
       handleCommand(transcript);
     };
@@ -1746,7 +1968,7 @@ export default function BlindMode() {
           loadAnnouncementAudioCache(),
         ]);
       } catch {
-        // Cached ElevenLabs prompts are optional; Web Speech remains the fallback.
+        // Cached ElevenLabs prompts are optional; text status remains visible if audio is not ready.
       } finally {
         if (!cancelled) setCachedSpeechReady(true);
       }
@@ -1790,13 +2012,13 @@ export default function BlindMode() {
 
     const welcomeTimer = window.setTimeout(() => {
       setIsWelcomeActive(true);
-      giveFeedback('focus');
       setStatus(WELCOME_MESSAGE);
-      finishWelcome();
     }, 0);
 
     return () => {
       window.clearTimeout(welcomeTimer);
+      if (touchClickTimerRef.current) window.clearTimeout(touchClickTimerRef.current);
+      if (longPressTimerRef.current) window.clearTimeout(longPressTimerRef.current);
       clearIdleReminder();
       playbackTokenRef.current += 1;
       stopPromptAudio();
@@ -1807,7 +2029,6 @@ export default function BlindMode() {
       recognitionRef.current?.abort();
     };
     // Welcome is visual-only on startup; user audio starts after explicit interaction.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cachedSpeechReady, speechSupported]);
 
   useEffect(() => {
@@ -1901,9 +2122,12 @@ export default function BlindMode() {
         <button
           type="button"
           className="blind-simple-touch-surface"
-          onClick={handlePrimaryTouch}
+          onPointerDown={handlePrimaryPointerDown}
+          onPointerUp={handlePrimaryPointerUp}
+          onPointerCancel={clearPointerGesture}
+          onPointerLeave={clearPointerGesture}
           autoFocus
-          aria-label={isListening ? 'Dinleniyor. Komutunuzu söyleyin.' : 'Duyum sesli komut alanı. Başlatmak veya komut vermek için dokunun.'}
+          aria-label={isListening ? 'Dinleniyor. Komutunuzu söyleyin.' : 'Duyum dinleme alanı. Sol taraf önceki, sağ taraf sonraki, orta alan komut veya başlatma içindir.'}
         >
           <span className="blind-simple-wave wave-one" aria-hidden="true" />
           <span className="blind-simple-wave wave-two" aria-hidden="true" />
@@ -1924,7 +2148,9 @@ export default function BlindMode() {
           </span>
         </button>
         <p className="blind-simple-status" aria-live="polite">
-          {isListening ? 'Dinleniyor. Komutunuzu söyleyin.' : status}
+          {isListening
+            ? 'Dinleniyor. Komutunuzu söyleyin.'
+            : (touchFallbackActive ? `${status} Sol: önceki. Sağ: sonraki. Orta: mikrofon. Çift dokun: aç veya dinle. Uzun bas: tekrar.` : status)}
         </p>
       </main>
     );
@@ -1944,7 +2170,7 @@ export default function BlindMode() {
         <button
           type="button"
           className="blind-primary-action"
-          onClick={handlePrimaryTouch}
+          onClick={() => handlePrimaryTouch('center')}
           onFocus={() => giveFeedback('focus')}
           autoFocus
         >
@@ -2030,7 +2256,7 @@ export default function BlindMode() {
               <p>{selectedBook.chapterTitle || (getPlaybackMode(selectedBook) === 'tts_text' ? 'PDF metni' : 'Tam Metin')}</p>
               <p>{selectedBook.author || 'Bilinmeyen yazar'} - {getBookDuration(selectedBook)}</p>
               <p>Okuma dili: {getReadableLanguage(selectedBook.language)}</p>
-              <p>{hasNaturalAudio(selectedBook) ? 'PDF doğal ses dosyasıyla okunacak' : (getPlaybackMode(selectedBook) === 'tts_text' ? 'PDF metni Web Speech API ile okunacak' : 'Ses dosyası modu')}</p>
+              <p>{hasNaturalAudio(selectedBook) ? 'PDF doğal ses dosyasıyla okunacak' : (getPlaybackMode(selectedBook) === 'tts_text' ? 'PDF metni doğal ses üretimi bekliyor' : 'Ses dosyası modu')}</p>
               {getPlaybackMode(selectedBook) === 'tts_text' && (
                 <p>
                   Geçerli sayfa: {textChunks[currentChunkIndex]?.pageStart || 'hazır değil'}
@@ -2060,7 +2286,7 @@ export default function BlindMode() {
                 onFocus={() => giveFeedback('focus')}
               >
                 <strong>{book.title}</strong>
-                <span>{book.category || 'Kategori yok'} - {hasNaturalAudio(book) ? 'PDF/Doğal Ses' : (book.readingMode === 'tts_text' ? 'PDF/TTS' : (book.chapterTitle || 'Ses'))}</span>
+                <span>{book.category || 'Kategori yok'} - {hasNaturalAudio(book) ? 'PDF/Doğal Ses' : (book.readingMode === 'tts_text' ? 'PDF metni, ses bekliyor' : (book.chapterTitle || 'Ses'))}</span>
               </button>
             ))}
           </section>
@@ -2081,6 +2307,9 @@ export default function BlindMode() {
             </p>
             {selectedAnnouncement?.detailUrl && (
               <p>Kaynak: {selectedAnnouncement.detailUrl}</p>
+            )}
+            {selectedAnnouncement && (
+              <p>Ses durumu: {formatAnnouncementAudioStatus(selectedAnnouncement)}.</p>
             )}
             {selectedAnnouncement && (
               <p>Komutlar: Detay oku, özet oku, sonraki duyuru, önceki duyuru, geri dön.</p>

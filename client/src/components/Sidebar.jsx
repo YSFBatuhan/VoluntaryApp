@@ -12,7 +12,7 @@ const navItems = [
 
 const adminNavItems = [
   { path: '/admin/qc', icon: 'QC', label: 'Kalite Kontrol', helper: 'Admin paneli' },
-  { path: '/admin/tts', icon: 'TS', label: 'TTS Ayarları', helper: 'Ses motoru' },
+  { path: '/admin/tts', icon: 'SÜ', label: 'Ses Üretimi', helper: 'Cache ve kalite' },
 ];
 
 export default function Sidebar() {
@@ -71,6 +71,6 @@ export default function Sidebar() {
 
 function getRoleLabel(role) {
   if (role === 'admin') return 'Admin';
-  if (role === 'blind_user') return 'Dinleyici';
+  if (role === 'listener_user') return 'Dinleyici';
   return 'Gönüllü';
 }

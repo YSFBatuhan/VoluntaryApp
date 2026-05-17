@@ -22,6 +22,7 @@ export const MENU_PROMPTS = {
   noDepartmentAnnouncements: 'no_department_announcements',
   noOptionsAtIndex: 'no_options_at_index',
   commandPrompt: 'command_prompt',
+  microphoneListening: 'microphone_listening',
   departmentListReturn: 'department_list_return',
   libraryModeAlready: 'library_mode_already',
   noPublishedAudio: 'no_published_audio',
@@ -41,7 +42,7 @@ export const MENU_PROMPTS = {
 };
 
 // ElevenLabs ile uretilen sabit menu sesleri buraya veya Firestore app_config'e baglanacak.
-// Bos URL olursa Blind Mode otomatik olarak Web Speech fallback kullanir.
+// Bos URL olursa ekranda metin durum mesajı gösterilir.
 const CACHED_MENU_AUDIO_URLS = {
   [MENU_PROMPTS.welcome]: '',
   [MENU_PROMPTS.commandHelp]: '',
@@ -63,6 +64,7 @@ const CACHED_MENU_AUDIO_URLS = {
   [MENU_PROMPTS.noDepartmentAnnouncements]: '',
   [MENU_PROMPTS.noOptionsAtIndex]: '',
   [MENU_PROMPTS.commandPrompt]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fcommand_prompt.mp3?alt=media&token=b5cc8c71-0fe9-4fb9-b36c-786c658bf0bd',
+  [MENU_PROMPTS.microphoneListening]: '',
   [MENU_PROMPTS.departmentListReturn]: '',
   [MENU_PROMPTS.libraryModeAlready]: '',
   [MENU_PROMPTS.noPublishedAudio]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fno_published_audio.mp3?alt=media&token=4b6fc3eb-bbe3-4025-beb2-e90314bbdabc',
@@ -116,7 +118,7 @@ export async function loadAnnouncementAudioCache() {
     runtimeAnnouncementAudioCache = cache;
     return cache;
   } catch {
-    // Firestore erisim hatasi sessizce yutulur, Web Speech fallback devam eder.
+    // Firestore erisim hatasi sessizce yutulur, varsayilan prompt listesi kullanilir.
     return {};
   }
 }
@@ -140,6 +142,23 @@ export function getCachedAnnouncementAudioUrl(announcement, { readFullDetail = f
   }
 
   return audio.summaryUrl || audio.url || '';
+}
+
+export function getAnnouncementAudioStatus(announcement) {
+  const staticAudio = announcement?.audio;
+  const runtimeAudio = announcement?.id ? runtimeAnnouncementAudioCache[announcement.id] : null;
+  const audio = staticAudio || runtimeAudio || {};
+  const summaryUrl = audio.summaryUrl || audio.url || '';
+  const detailUrl = audio.detailUrl || audio.url || '';
+
+  return {
+    summaryReady: Boolean(summaryUrl),
+    detailReady: Boolean(detailUrl),
+    summaryUrl,
+    detailUrl,
+    source: runtimeAudio ? 'firestore' : (staticAudio ? 'static' : 'missing'),
+    readyCount: Number(Boolean(summaryUrl)) + Number(Boolean(detailUrl)),
+  };
 }
 
 export function createCachedSpeechAudio(url) {

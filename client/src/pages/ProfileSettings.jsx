@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
-const BLIND_INTERFACE_KEY = 'echovoices:blind-interface-mode';
-
 export default function ProfileSettings() {
   const { currentUser, userProfile, updateUserProfile } = useAuth();
   const [form, setForm] = useState({
@@ -12,8 +10,6 @@ export default function ProfileSettings() {
     preferredCategory: userProfile?.preferredCategory || 'Ders Notu',
     availability: userProfile?.availability || 'Haftada 2-3 saat',
     goalMinutes: userProfile?.goalMinutes || 120,
-    blindInterfaceMode:
-      userProfile?.blindInterfaceMode || localStorage.getItem(BLIND_INTERFACE_KEY) || 'standard',
   });
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -30,7 +26,6 @@ export default function ProfileSettings() {
         ...form,
         goalMinutes: Number(form.goalMinutes) || 0,
       });
-      localStorage.setItem(BLIND_INTERFACE_KEY, form.blindInterfaceMode);
       setSuccessMsg('Profil güncellendi.');
     } catch (err) {
       setError('Profil kaydedilemedi: ' + err.message);
@@ -112,17 +107,6 @@ export default function ProfileSettings() {
                 value={form.goalMinutes}
                 onChange={e => setForm({ ...form, goalMinutes: e.target.value })}
               />
-            </div>
-
-            <div className="form-group">
-              <label>Blind Mode Arayüzü</label>
-              <select
-                value={form.blindInterfaceMode}
-                onChange={e => setForm({ ...form, blindInterfaceMode: e.target.value })}
-              >
-                <option value="standard">Standart arayüz</option>
-                <option value="simple">Sade mikrofon arayüzü</option>
-              </select>
             </div>
 
             <div className="form-group">

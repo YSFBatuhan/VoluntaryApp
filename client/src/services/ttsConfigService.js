@@ -2,7 +2,7 @@ import { doc, getDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 export const DEFAULT_TTS_CONFIG = {
-  mode: 'hybrid',
+  mode: 'cached_audio',
   elevenLabsEnabled: false,
   monthlyCreditLimit: 30000,
   usedCreditsEstimate: 0,
@@ -13,7 +13,7 @@ export const DEFAULT_TTS_CONFIG = {
   cacheRequired: true,
   defaultVoiceId: '',
   defaultModel: 'eleven_flash_v2_5',
-  fallbackEngine: 'web_speech',
+  fallbackEngine: 'cached_audio',
 };
 
 const TTS_CONFIG_REF = doc(db, 'app_config', 'tts');
