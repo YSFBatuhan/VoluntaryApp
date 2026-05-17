@@ -44,7 +44,7 @@ export const MENU_PROMPTS = {
 // Bos URL olursa Blind Mode otomatik olarak Web Speech fallback kullanir.
 const CACHED_MENU_AUDIO_URLS = {
   [MENU_PROMPTS.welcome]: '',
-  [MENU_PROMPTS.commandHelp]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fcommand_help.mp3?alt=media&token=c41b9140-1e1e-4ce5-80c2-8e1bdae718f8',
+  [MENU_PROMPTS.commandHelp]: '',
   [MENU_PROMPTS.libraryMode]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Flibrary_mode.mp3?alt=media&token=e290187b-c7e9-4f57-851b-6b9867b69f75',
   [MENU_PROMPTS.noBooks]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fno_books.mp3?alt=media&token=b86ed592-93c3-43fb-a74a-2d5a759af8a4',
   [MENU_PROMPTS.speechUnsupported]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fspeech_unsupported.mp3?alt=media&token=8f236730-1bee-448b-93c2-dc9eb39efba9',
@@ -59,7 +59,7 @@ const CACHED_MENU_AUDIO_URLS = {
   [MENU_PROMPTS.pageNavigationTextOnly]: '',
   [MENU_PROMPTS.pageNumberTextOnly]: '',
   [MENU_PROMPTS.noTextChunks]: '',
-  [MENU_PROMPTS.announcementsMode]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fannouncements_mode.mp3?alt=media&token=a946a8cd-c361-490b-872c-2e57aabce8a3',
+  [MENU_PROMPTS.announcementsMode]: '',
   [MENU_PROMPTS.noDepartmentAnnouncements]: '',
   [MENU_PROMPTS.noOptionsAtIndex]: '',
   [MENU_PROMPTS.commandPrompt]: 'https://firebasestorage.googleapis.com/v0/b/gtu-echovoices.firebasestorage.app/o/tts_cache%2Fmenu%2Fcommand_prompt.mp3?alt=media&token=b5cc8c71-0fe9-4fb9-b36c-786c658bf0bd',

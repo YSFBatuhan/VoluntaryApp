@@ -17,7 +17,7 @@ export const MENU_SPEECH_PROMPTS = [
   {
     id: 'command_help',
     label: 'Komut yardımı',
-    text: 'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurular için duyurular deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.',
+    text: 'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurulara geçmek için duyurular deyin. Bölüm seçmek için Bilgisayar duyuruları veya Matematik duyuruları diyebilirsiniz. Duyuru listesinden bir duyuru açmak için birinciyi aç, ikinciyi aç veya başlıktan bir kelime söyleyin. Açılan duyuruda kısa metin için özet oku, tam metin için detay oku deyin. Duyurular arasında gezinmek için sonraki duyuru veya önceki duyuru deyin. Son mesajı yeniden duymak için tekrar et deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.',
   },
   {
     id: 'library_mode',
@@ -92,7 +92,7 @@ export const MENU_SPEECH_PROMPTS = [
   {
     id: 'announcements_mode',
     label: 'Duyurular modu',
-    text: `GTÜ duyuruları modu açıldı. ${GTU_DEPARTMENT_PROMPT_TEXT}. Bölüm seçmek için 1, 2 gibi sırasını; ya da Bilgisayar, Matematik gibi bölüm adını söyleyin.`,
+    text: `GTÜ duyuruları modu açıldı. ${GTU_DEPARTMENT_PROMPT_TEXT}. Bölüm seçmek için 1, 2 gibi sırasını; ya da Bilgisayar duyuruları, Matematik duyuruları gibi bölüm adını söyleyin. Komutları tekrar duymak için yardım deyin.`,
   },
   {
     id: 'no_department_announcements',

@@ -21,6 +21,8 @@ const INTENT_PATTERNS = [
   { intent: 'next', phrases: ['sonraki', 'ileri', 'bir sonraki', 'devamindaki', 'devamındaki'] },
   { intent: 'previous', phrases: ['onceki', 'önceki', 'geri kitap', 'geri al', 'bir onceki', 'bir önceki'] },
   { intent: 'back', phrases: ['geri don', 'geri dön', 'geri', 'onceki menu', 'önceki menü'] },
+  { intent: 'repeat', phrases: ['tekrar et', 'tekrar oku', 'son mesaji oku', 'son mesajı oku', 'bir daha', 'yeniden soyle', 'yeniden söyle'] },
+  { intent: 'summary', phrases: ['ozet', 'özet', 'ozet oku', 'özet oku', 'kisaca oku', 'kısaca oku'] },
   { intent: 'detail', phrases: ['detay', 'detaylari oku', 'detayları oku', 'tamamini oku', 'tamamını oku', 'hepsini oku'] },
   { intent: 'play', phrases: ['dinle', 'oku', 'baslat', 'başlat', 'oynat', 'cal', 'çal', 'devam'] },
   { intent: 'pause', phrases: ['dur', 'duraklat', 'sus', 'durdur', 'bekle', 'sessiz'] },

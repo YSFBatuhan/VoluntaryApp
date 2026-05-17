@@ -47,12 +47,15 @@ const MOCK_BOOKS = [
 ];
 
 const WELCOME_MESSAGE =
-  'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Yardım almak için yardım deyin.';
+  'Duyum dinleme moduna hoş geldiniz. Komut vermek için Enter tuşuna basabilir veya ekrandaki büyük mikrofon düğmesine dokunabilirsiniz. Kitapları duymak için kitapları listele deyin. GTÜ duyuruları için duyurular deyin. Son mesajı yeniden duymak için tekrar et, yardım almak için yardım deyin.';
 
 const IDLE_REMINDER_DELAY_MS = 45000;
+const DYNAMIC_SPEECH_FALLBACK_MS = 1200;
+const ACTIVATION_MESSAGE =
+  'Duyum açıldı. Komut vermek için ekrana tekrar dokunun veya Enter tuşuna basın. Yardım için yardım deyin.';
 
 const COMMAND_HELP_TEXT =
-  'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurular için duyurular deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.';
+  'Yardım rehberi. Komut vermek için Enter tuşuna basın veya büyük mikrofon düğmesine dokunun. Kitapları listelemek için kitapları listele deyin. Bir kitabı açmak için birinciyi aç veya kitap adını söyleyin. Dinlemek için dinle, durdurmak için duraklat deyin. PDF kitaplarda sonraki sayfa, önceki sayfa veya beşinci sayfaya git diyebilirsiniz. Duyurulara geçmek için duyurular deyin. Bölüm seçmek için Bilgisayar duyuruları veya Matematik duyuruları diyebilirsiniz. Duyuru listesinden bir duyuru açmak için birinciyi aç, ikinciyi aç veya başlıktan bir kelime söyleyin. Açılan duyuruda kısa metin için özet oku, tam metin için detay oku deyin. Duyurular arasında gezinmek için sonraki duyuru veya önceki duyuru deyin. Son mesajı yeniden duymak için tekrar et deyin. Geri dönmek için geri dön deyin. Klavyede Space dinle ve duraklat, sağ ok ileri, sol ok geri, H yardım komutudur.';
 
 const BLIND_INTERFACE_KEY = 'echovoices:blind-interface-mode';
 
@@ -85,6 +88,15 @@ function getReadableLanguage(language) {
   return getSpeechLanguage(language) === 'en-US' ? 'İngilizce' : 'Türkçe';
 }
 
+function hasNaturalAudio(book) {
+  return book?.sourceType === 'pdf' && book?.naturalAudio?.status === 'ready';
+}
+
+function getPlaybackMode(book) {
+  if (hasNaturalAudio(book)) return 'audio_file';
+  return book?.readingMode || 'tts_text';
+}
+
 export default function BlindMode() {
   const { currentUser, userProfile } = useAuth();
   const [query, setQuery] = useState('');
@@ -102,8 +114,9 @@ export default function BlindMode() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [lastCommand, setLastCommand] = useState('');
-  const [cachedSpeechReady, setCachedSpeechReady] = useState(false);
+  const [cachedSpeechReady, setCachedSpeechReady] = useState(true);
   const [isWelcomeActive, setIsWelcomeActive] = useState(true);
+  const [hasUserActivatedAudio, setHasUserActivatedAudio] = useState(false);
   const [storedBlindInterfaceMode] = useState(() =>
     localStorage.getItem(BLIND_INTERFACE_KEY) || 'simple',
   );
@@ -116,6 +129,7 @@ export default function BlindMode() {
   const [recognitionSupported] = useState(Boolean(recognitionConstructor));
   const recognitionRef = useRef(null);
   const listeningPulseRef = useRef(null);
+  const processingPulseRef = useRef(null);
   const playbackTokenRef = useRef(0);
   const speechRequestTokenRef = useRef(0);
   const promptAudioRef = useRef(null);
@@ -128,6 +142,8 @@ export default function BlindMode() {
   const idleReminderTimerRef = useRef(null);
   const isPlayingRef = useRef(false);
   const isListeningRef = useRef(false);
+  const lastSpokenMessageRef = useRef(WELCOME_MESSAGE);
+  const libraryLoadingAnnouncedRef = useRef(false);
 
   const visibleBooks = useMemo(() => {
     if (!query.trim()) return books;
@@ -175,6 +191,7 @@ export default function BlindMode() {
       focus: { frequency: 420, duration: 0.07, volume: 0.04 },
       listening: { frequency: 760, duration: 0.09, volume: 0.055 },
       listeningPulse: { frequency: 520, duration: 0.045, volume: 0.035 },
+      processing: { frequency: 340, duration: 0.08, volume: 0.04 },
       success: { frequency: 660, duration: 0.16, volume: 0.05 },
       error: { frequency: 180, duration: 0.22, volume: 0.06 },
     };
@@ -231,7 +248,20 @@ export default function BlindMode() {
       return;
     }
 
+    let fallbackTimer = null;
+    let fallbackUsed = false;
+    startProcessingFeedback();
+
+    const playFallbackSpeech = () => {
+      if (fallbackUsed) return;
+      fallbackUsed = true;
+      stopProcessingFeedback();
+      if (options.requestToken !== speechRequestTokenRef.current) return;
+      fallback();
+    };
+
     try {
+      fallbackTimer = window.setTimeout(playFallbackSpeech, DYNAMIC_SPEECH_FALLBACK_MS);
       const result = await generateCachedDynamicSpeech({
         text: message,
         language,
@@ -240,6 +270,9 @@ export default function BlindMode() {
         publicPromptId: options.publicPromptId,
       });
 
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
+      stopProcessingFeedback();
+      if (fallbackUsed) return;
       if (options.requestToken !== speechRequestTokenRef.current) return;
 
       if (result?.audioUrl) {
@@ -248,14 +281,19 @@ export default function BlindMode() {
       }
     } catch {
       // Missing quota, config, or provider access should not break the listener screen.
+    } finally {
+      if (fallbackTimer) window.clearTimeout(fallbackTimer);
+      stopProcessingFeedback();
     }
 
+    if (fallbackUsed) return;
     if (options.requestToken !== speechRequestTokenRef.current) return;
-    fallback();
+    playFallbackSpeech();
   }
 
   function speak(message, language = 'tr-TR', options = {}) {
     setStatus(message);
+    if (!options.skipHistory) lastSpokenMessageRef.current = message;
     const requestToken = speechRequestTokenRef.current + 1;
     speechRequestTokenRef.current = requestToken;
 
@@ -283,6 +321,7 @@ export default function BlindMode() {
 
   function speakMenu(message, options = {}) {
     setStatus(message);
+    if (!options.skipHistory) lastSpokenMessageRef.current = message;
     const requestToken = speechRequestTokenRef.current + 1;
     speechRequestTokenRef.current = requestToken;
     const publicPromptId =
@@ -312,7 +351,7 @@ export default function BlindMode() {
     }
 
     playGeneratedSpeech(message, 'tr-TR', fallback, {
-      allowDynamicSpeech: options.allowDynamicSpeech ?? true,
+      allowDynamicSpeech: options.allowDynamicSpeech ?? false,
       ...options,
       publicPromptId,
       requestToken,
@@ -354,7 +393,7 @@ export default function BlindMode() {
 
     idleReminderTimerRef.current = window.setTimeout(() => {
       if (!welcomeCompletedRef.current || isPlayingRef.current || isListeningRef.current) return;
-      speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome });
+      speakMenu(WELCOME_MESSAGE, { promptId: MENU_PROMPTS.welcome, allowDynamicSpeech: false });
       scheduleIdleReminder();
     }, IDLE_REMINDER_DELAY_MS);
   }
@@ -370,8 +409,39 @@ export default function BlindMode() {
     }
 
     pendingWelcomeActionRef.current = action;
-    setStatus('Hoş geldiniz mesajı tamamlanıyor. Ardından komut verebilirsiniz.');
+    stopPromptAudio();
+    window.speechSynthesis?.cancel();
+    finishWelcome();
     return false;
+  }
+
+  function activateAudioSession() {
+    if (hasUserActivatedAudio) return true;
+
+    setHasUserActivatedAudio(true);
+    giveFeedback('success');
+    stopPromptAudio();
+    window.speechSynthesis?.cancel();
+    finishWelcome();
+    speakMenu(ACTIVATION_MESSAGE, {
+      allowDynamicSpeech: false,
+      skipHistory: true,
+    });
+    return false;
+  }
+
+  function handlePrimaryTouch() {
+    if (!activateAudioSession()) return;
+    startListening();
+  }
+
+  function repeatLastMessage() {
+    const message = lastSpokenMessageRef.current || status || WELCOME_MESSAGE;
+    giveFeedback('focus');
+    speakMenu(`Tekrar ediyorum. ${message}`, {
+      allowDynamicSpeech: false,
+      skipHistory: true,
+    });
   }
 
   function finishWelcome() {
@@ -442,7 +512,7 @@ export default function BlindMode() {
 
       const nextBookmark = progressToBookmark(progress, book);
       setBookmark(nextBookmark);
-      if (book.readingMode === 'tts_text') {
+      if (getPlaybackMode(book) === 'tts_text') {
         setCurrentChunkIndex(progress.chunkIndex || 0);
       }
       writeLocalBookmark(nextBookmark);
@@ -464,7 +534,7 @@ export default function BlindMode() {
     const nextBookmark = {
       bookId: book.id,
       title: book.title,
-      readingMode: book.readingMode,
+      readingMode: getPlaybackMode(book),
       chunkIndex,
       pageStart,
       positionSec: Math.max(0, Math.floor(positionSec || 0)),
@@ -479,7 +549,7 @@ export default function BlindMode() {
       try {
         await saveReadingProgress({
           userId: currentUser.uid,
-          book,
+          book: { ...book, readingMode: getPlaybackMode(book) },
           chapterId,
           chunkIndex,
           pageStart,
@@ -497,7 +567,7 @@ export default function BlindMode() {
     }
 
     if (announce) {
-      if (book.readingMode === 'audio_file') {
+      if (getPlaybackMode(book) === 'audio_file') {
         speakMenu(`${book.title} için kaldığınız yer ${formatPosition(nextBookmark.positionSec)} olarak kaydedildi.`);
       } else {
         speakMenu(`${book.title} için kaldığınız yer sayfa ${nextBookmark.pageStart || '-'} olarak kaydedildi.`);
@@ -511,7 +581,7 @@ export default function BlindMode() {
     return {
       bookId: book.id,
       title: book.title,
-      readingMode: book.readingMode,
+      readingMode: getPlaybackMode(book),
       chunkIndex: progress.chunkIndex || 0,
       pageStart: progress.pageStart || null,
       positionSec: progress.positionSec || 0,
@@ -548,7 +618,7 @@ export default function BlindMode() {
       return;
     }
 
-    if (selectedBook.readingMode !== 'tts_text') {
+    if (getPlaybackMode(selectedBook) !== 'tts_text') {
       const audio = audioPlayerRef.current;
       await persistProgress({
         book: selectedBook,
@@ -580,9 +650,14 @@ export default function BlindMode() {
     if (book.readingMode !== 'tts_text') return [];
     if (book.id === selectedBook.id && textChunks.length) return textChunks;
 
-    const chunks = await getBookTextChunks(book.id, 40);
-    setTextChunks(chunks);
-    return chunks;
+    startProcessingFeedback();
+    try {
+      const chunks = await getBookTextChunks(book.id, 40);
+      setTextChunks(chunks);
+      return chunks;
+    } finally {
+      stopProcessingFeedback();
+    }
   }
 
   async function speakTextBook(book, startIndex = 0) {
@@ -662,6 +737,22 @@ export default function BlindMode() {
     }, 1100);
   }
 
+  function startProcessingFeedback() {
+    stopProcessingFeedback();
+    vibrate([35, 45, 35]);
+    playTone('processing');
+    processingPulseRef.current = window.setInterval(() => {
+      vibrate(25);
+      playTone('processing');
+    }, 900);
+  }
+
+  function stopProcessingFeedback() {
+    if (!processingPulseRef.current) return;
+    window.clearInterval(processingPulseRef.current);
+    processingPulseRef.current = null;
+  }
+
   function stopListeningFeedback() {
     if (!listeningPulseRef.current) return;
     window.clearInterval(listeningPulseRef.current);
@@ -686,6 +777,7 @@ export default function BlindMode() {
   }
 
   function selectBook(book) {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(() => selectBook(book))) return;
 
     setQuery('');
@@ -709,7 +801,7 @@ export default function BlindMode() {
       return;
     }
 
-    if (selectedBook.readingMode !== 'tts_text') {
+    if (getPlaybackMode(selectedBook) !== 'tts_text') {
       giveFeedback('error');
       speakMenu('Sayfa gezinme sadece PDF metin kitapları için kullanılır.', {
         promptId: MENU_PROMPTS.pageNavigationTextOnly,
@@ -752,7 +844,7 @@ export default function BlindMode() {
       return;
     }
 
-    if (selectedBook.readingMode !== 'tts_text') {
+    if (getPlaybackMode(selectedBook) !== 'tts_text') {
       giveFeedback('error');
       speakMenu('Sayfa numarası komutu sadece PDF metin kitapları için kullanılır.', {
         promptId: MENU_PROMPTS.pageNumberTextOnly,
@@ -794,7 +886,7 @@ export default function BlindMode() {
     }
 
     setBookmark(savedBookmark);
-    if (selectedBook.readingMode === 'tts_text') {
+    if (getPlaybackMode(selectedBook) === 'tts_text') {
       goToTextChunk(savedBookmark.chunkIndex || 0, true);
       return;
     }
@@ -819,6 +911,7 @@ export default function BlindMode() {
   }
 
   function openAnnouncementsMode() {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(openAnnouncementsMode)) return;
 
     setQuery('');
@@ -830,12 +923,13 @@ export default function BlindMode() {
     stopAudioPlayback({ resetPosition: true });
     window.speechSynthesis?.cancel();
     giveFeedback('success');
-    speakMenu(`GTÜ duyuruları modu açıldı. ${formatDepartmentTitles(GTU_DEPARTMENTS)} Bölüm seçmek için 1, 2 gibi sırasını; ya da Bilgisayar, Matematik gibi bölüm adını söyleyin.`, {
+    speakMenu(`GTÜ duyuruları modu açıldı. ${formatDepartmentTitles(GTU_DEPARTMENTS)} Bölüm seçmek için 1, 2 gibi sırasını; ya da Bilgisayar duyuruları, Matematik duyuruları gibi bölüm adını söyleyin. Komutları tekrar duymak için yardım deyin.`, {
       promptId: MENU_PROMPTS.announcementsMode,
     });
   }
 
   function openLibraryMode() {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(openLibraryMode)) return;
 
     setQuery('');
@@ -848,6 +942,7 @@ export default function BlindMode() {
   }
 
   function selectDepartment(department) {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(() => selectDepartment(department))) return;
 
     setQuery('');
@@ -866,7 +961,7 @@ export default function BlindMode() {
       return;
     }
 
-    speakMenu(`${department.name} duyuruları açıldı. ${announcements.length} duyuru bulundu. ${formatAnnouncementTitles(announcements)} Bir duyuruya girmek için birinciyi aç, ikinciyi aç veya duyuru başlığından bir kelime söyleyin.`, {
+    speakMenu(`${department.name} duyuruları açıldı. ${announcements.length} duyuru bulundu. ${formatAnnouncementTitles(announcements)} Bir duyuruya girmek için birinciyi aç, ikinciyi aç veya duyuru başlığından bir kelime söyleyin. Duyuru açıldıktan sonra tam metin için detay oku, kısa metin için özet oku diyebilirsiniz.`, {
       allowDynamicSpeech: true,
       publicPromptId: `blind_department_${department.id}_list`,
     });
@@ -883,12 +978,16 @@ export default function BlindMode() {
   }
 
   function selectAnnouncement(announcement, readFullDetail = false) {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(() => selectAnnouncement(announcement, readFullDetail))) return;
 
     setQuery('');
     setSelectedAnnouncement(announcement);
     giveFeedback('success');
-    const detailText = getAnnouncementSpeechText(announcement, { readFullDetail });
+    const navigationHint = readFullDetail
+      ? 'Komutlar: Özete dönmek için özet oku, sonraki duyuru için sonraki duyuru, önceki duyuru için önceki duyuru, bölüm listesine dönmek için geri dön deyin.'
+      : 'Komutlar: Tam metni okumak için detay oku, sonraki duyuru için sonraki duyuru, önceki duyuru için önceki duyuru, bölüm listesine dönmek için geri dön deyin.';
+    const detailText = `${getAnnouncementSpeechText(announcement, { readFullDetail })} ${navigationHint}`;
     speak(detailText, announcement.language || 'tr-TR', {
       cachedAudioUrl: getCachedAnnouncementAudioUrl(announcement, { readFullDetail }),
       allowDynamicSpeech: true,
@@ -1026,10 +1125,10 @@ export default function BlindMode() {
   }
 
   function listBooks() {
-    const firstBooks = visibleBooks.length || !query.trim() ? visibleBooks : books;
+    const firstBooks = books.slice(0, 10);
     if (!firstBooks.length) {
       giveFeedback('error');
-      speakMenu(getNoBooksMessage(), { promptId: MENU_PROMPTS.noBooks });
+      speakMenu(getNoBooksMessage());
       return;
     }
 
@@ -1050,7 +1149,9 @@ export default function BlindMode() {
   function formatBookForMenu(book) {
     const category = book.category || 'kategori belirtilmemiş';
     const author = book.author ? `Yazar: ${book.author}.` : 'Yazar belirtilmemiş.';
-    const readingType = book.readingMode === 'tts_text' ? 'PDF metin, Web Speech ile okunacak' : 'sesli kitap';
+    const readingType = hasNaturalAudio(book)
+      ? 'PDF metninden üretilmiş doğal ses'
+      : (book.readingMode === 'tts_text' ? 'PDF metin, Web Speech ile okunacak' : 'sesli kitap');
     const language = getReadableLanguage(book.language);
     return `${book.title}. Tür: ${category}. ${author} Okuma tipi: ${readingType}. Dil: ${language}`;
   }
@@ -1087,7 +1188,7 @@ export default function BlindMode() {
     const text = departmentAnnouncements
       .map((announcement, index) => `${index + 1}. ${announcement.title}`)
       .join('. ');
-    speakMenu(`${selectedDepartment.name} duyuruları: ${text}. Bir duyurunun detayını okumak için numarasını veya başlığından bir kelime söyleyin.`, {
+    speakMenu(`${selectedDepartment.name} duyuruları: ${text}. Bir duyuru açmak için numarasını veya başlığından bir kelime söyleyin. Açılan duyuruda tam metin için detay oku, kısa metin için özet oku deyin.`, {
       allowDynamicSpeech: true,
       publicPromptId: `blind_announcement_${selectedDepartment.id}_list`,
     });
@@ -1102,14 +1203,26 @@ export default function BlindMode() {
     selectAnnouncement(selectedAnnouncement, true);
   }
 
+  function readSelectedAnnouncementSummary() {
+    if (!selectedAnnouncement) {
+      listAnnouncements();
+      return;
+    }
+
+    selectAnnouncement(selectedAnnouncement, false);
+  }
+
   async function playAudioBook(book, startPositionSec = null) {
     try {
       stopPromptAudio();
       window.speechSynthesis?.cancel();
       stopAudioPlayback({ resetPosition: true });
+      startProcessingFeedback();
+      setStatus(`${book.title} hazırlanıyor. Ses dosyası kontrol ediliyor.`);
 
       const chapters = await getPublishedChapters(book.id);
       const playableChapters = chapters.filter(chapter => chapter.audio?.url);
+      stopProcessingFeedback();
 
       if (!playableChapters.length) {
         setIsPlaying(false);
@@ -1133,6 +1246,7 @@ export default function BlindMode() {
         startPositionSec: resumePosition,
       });
     } catch {
+      stopProcessingFeedback();
       setIsPlaying(false);
       giveFeedback('error');
       speakMenu('Ses dosyası başlatılamadı. Tarayıcı izinlerini veya Storage ayarlarını kontrol edin.', {
@@ -1200,7 +1314,7 @@ export default function BlindMode() {
 
   function seekAudio(seconds) {
     const audio = audioPlayerRef.current;
-    if (!audio || selectedBook.readingMode === 'tts_text') {
+    if (!audio || getPlaybackMode(selectedBook) === 'tts_text') {
       giveFeedback('focus');
       speakMenu(seconds > 0 ? 'On saniye ileri sarıldı.' : 'On saniye geri sarıldı.', {
         promptId: seconds > 0 ? MENU_PROMPTS.forwardTen : MENU_PROMPTS.backwardTen,
@@ -1296,6 +1410,11 @@ export default function BlindMode() {
       return;
     }
 
+    if (command.intent === 'repeat') {
+      repeatLastMessage();
+      return;
+    }
+
     if (command.intent === 'resume') {
       resumeFromBookmark();
       return;
@@ -1343,9 +1462,18 @@ export default function BlindMode() {
       return;
     }
 
+    if (
+      mode === 'announcements'
+      && selectedAnnouncement
+      && command.intent === 'summary'
+    ) {
+      readSelectedAnnouncementSummary();
+      return;
+    }
+
     if (command.intent === 'play') {
       if (mode === 'announcements' && selectedAnnouncement) {
-        readSelectedAnnouncementDetail();
+        readSelectedAnnouncementSummary();
         return;
       }
 
@@ -1479,6 +1607,7 @@ export default function BlindMode() {
   }
 
   function togglePlayback() {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(togglePlayback)) return;
 
     if (!selectedBook) {
@@ -1493,14 +1622,14 @@ export default function BlindMode() {
     if (!nextPlaying) {
       playbackTokenRef.current += 1;
       setIsPlaying(false);
-      if (selectedBook.readingMode === 'audio_file') {
+      if (getPlaybackMode(selectedBook) === 'audio_file') {
         const audio = audioPlayerRef.current;
         persistProgress({
           book: selectedBook,
           chapterId: currentAudioChapterIdRef.current,
           positionSec: audio?.currentTime || 0,
         });
-      } else if (selectedBook.readingMode === 'tts_text') {
+      } else if (getPlaybackMode(selectedBook) === 'tts_text') {
         const chunk = textChunks[currentChunkIndex];
         persistProgress({
           book: selectedBook,
@@ -1514,7 +1643,7 @@ export default function BlindMode() {
       return;
     }
 
-    if (selectedBook.readingMode === 'tts_text') {
+    if (getPlaybackMode(selectedBook) === 'tts_text') {
       speakTextBook(selectedBook, currentChunkIndex);
       return;
     }
@@ -1523,11 +1652,12 @@ export default function BlindMode() {
   }
 
   function startListening() {
+    if (!activateAudioSession()) return;
     if (!runAfterWelcome(startListening)) return;
 
     if (!recognitionSupported) {
       giveFeedback('error');
-      speakMenu('Bu tarayıcı sesli komutu desteklemiyor. Arama kutusunu kullanabilirsiniz.', {
+      speakMenu('Bu tarayıcı sesli komutu desteklemiyor. Klavyede H tuşu yardım rehberini, Space seçili kitabı dinlemeyi, sağ ve sol oklar ileri geri gitmeyi sağlar. Yazılı arama kutusu standart arayüzde kullanılabilir.', {
         promptId: MENU_PROMPTS.speechUnsupported,
       });
       return;
@@ -1558,7 +1688,7 @@ export default function BlindMode() {
         `Sesli komut çalışmadı. Hata kodu: ${event.error || 'bilinmiyor'}. Yazılı aramayı kullanabilirsiniz.`;
       const promptId = RECOGNITION_ERROR_PROMPTS[event.error];
       giveFeedback('error');
-      speakMenu(errorMessage, promptId ? { promptId } : {});
+      speakMenu(`${errorMessage} Klavyede H yardım, Space dinle veya duraklat, sağ ve sol oklar ileri geri gitmek içindir. Tekrar denemek için ekrana dokunun.`, promptId ? { promptId } : {});
     };
 
     recognition.onend = () => {
@@ -1580,6 +1710,12 @@ export default function BlindMode() {
 
     async function loadLibrary() {
       try {
+        if (!libraryLoadingAnnouncedRef.current) {
+          libraryLoadingAnnouncedRef.current = true;
+          startProcessingFeedback();
+          setStatus('Duyum hazırlanıyor. Kitaplık ve duyuru sesleri yükleniyor.');
+        }
+
         await Promise.all([
           loadCachedSpeechConfig(),
           loadAnnouncementAudioCache(),
@@ -1593,6 +1729,7 @@ export default function BlindMode() {
       try {
         const publishedBooks = await getPublishedBooks();
         if (cancelled) return;
+        stopProcessingFeedback();
 
         setPublishedLibraryLoaded(true);
         if (!publishedBooks.length) {
@@ -1607,6 +1744,7 @@ export default function BlindMode() {
         loadProgressForBook(publishedBooks[0]);
         setLibrarySource('Firestore kütüphanesi');
       } catch {
+        stopProcessingFeedback();
         if (!cancelled) {
           setLibrarySource('Örnek kütüphane');
         }
@@ -1628,8 +1766,10 @@ export default function BlindMode() {
     let welcomeWatchdog = null;
     const welcomeTimer = window.setTimeout(() => {
       setIsWelcomeActive(true);
+      giveFeedback('focus');
       speakMenu(WELCOME_MESSAGE, {
         promptId: MENU_PROMPTS.welcome,
+        allowDynamicSpeech: false,
         onEnd: finishWelcome,
       });
       welcomeWatchdog = window.setTimeout(finishWelcome, 22000);
@@ -1643,6 +1783,7 @@ export default function BlindMode() {
       stopPromptAudio();
       stopAudioPlayback({ resetPosition: true });
       stopListeningFeedback();
+      stopProcessingFeedback();
       window.speechSynthesis?.cancel();
       recognitionRef.current?.abort();
     };
@@ -1743,35 +1884,30 @@ export default function BlindMode() {
     return (
       <main
         className={simplePageClassName}
-        onClick={startListening}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.code === 'Space') {
-            event.preventDefault();
-            startListening();
-          }
-        }}
-        role="button"
-        tabIndex={0}
-        aria-label={isListening ? 'Dinleniyor' : 'Sesli komut vermek için ekranın herhangi bir yerine dokunun'}
       >
-        <span className="blind-simple-wave wave-one" aria-hidden="true" />
-        <span className="blind-simple-wave wave-two" aria-hidden="true" />
-        <span className="blind-simple-wave wave-three" aria-hidden="true" />
         <button
           type="button"
-          className={isListening ? 'blind-simple-mic-button listening' : 'blind-simple-mic-button'}
+          className="blind-simple-touch-surface"
+          onClick={handlePrimaryTouch}
           autoFocus
-          tabIndex={-1}
-          aria-label={isListening ? 'Dinleniyor' : 'Sesli komut ver'}
+          aria-label={isListening ? 'Dinleniyor. Komutunuzu söyleyin.' : 'Duyum sesli komut alanı. Başlatmak veya komut vermek için dokunun.'}
         >
-          <span className="blind-audio-bars" aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
-            <span />
+          <span className="blind-simple-wave wave-one" aria-hidden="true" />
+          <span className="blind-simple-wave wave-two" aria-hidden="true" />
+          <span className="blind-simple-wave wave-three" aria-hidden="true" />
+          <span
+            className={isListening ? 'blind-simple-mic-button listening' : 'blind-simple-mic-button'}
+            aria-hidden="true"
+          >
+            <span className="blind-audio-bars" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </span>
           </span>
         </button>
         <p className="blind-simple-status" aria-live="polite">
@@ -1793,7 +1929,7 @@ export default function BlindMode() {
         <button
           type="button"
           className="blind-primary-action"
-          onClick={startListening}
+          onClick={handlePrimaryTouch}
           onFocus={() => giveFeedback('focus')}
           autoFocus
         >
@@ -1839,7 +1975,7 @@ export default function BlindMode() {
             onKeyDown={(event) => {
               if (event.key === 'Enter') handleCommand();
             }}
-            placeholder="Örnek: dinle, sonraki, duyurular, Nutuk"
+            placeholder={mode === 'announcements' ? 'Örnek: Bilgisayar duyuruları, birinciyi aç, detay oku' : 'Örnek: dinle, sonraki, duyurular, Nutuk'}
           />
           <button type="button" onClick={() => handleCommand()}>
             Komutu Çalıştır
@@ -1856,9 +1992,15 @@ export default function BlindMode() {
         <span>Listele</span>
         <span>Sonraki sayfa</span>
         <span>5. sayfaya git</span>
+        <span>Tekrar et</span>
         <span>Kaldığım yeri işaretle</span>
         <span>Kaldığım yerden devam et</span>
         <span>Duyurular</span>
+        <span>Bilgisayar duyuruları</span>
+        <span>Birinciyi aç</span>
+        <span>Özet oku</span>
+        <span>Detay oku</span>
+        <span>Sonraki duyuru</span>
         <span>Geri dön</span>
         <span>Yardım</span>
         {lastCommand && <em>Son komut: {lastCommand}</em>}
@@ -1870,11 +2012,11 @@ export default function BlindMode() {
             <section className="blind-now-playing" aria-label="Seçili içerik">
               <span>Seçili içerik</span>
               <h2>{selectedBook.title}</h2>
-              <p>{selectedBook.chapterTitle || (selectedBook.readingMode === 'tts_text' ? 'PDF metni' : 'Tam Metin')}</p>
+              <p>{selectedBook.chapterTitle || (getPlaybackMode(selectedBook) === 'tts_text' ? 'PDF metni' : 'Tam Metin')}</p>
               <p>{selectedBook.author || 'Bilinmeyen yazar'} - {getBookDuration(selectedBook)}</p>
               <p>Okuma dili: {getReadableLanguage(selectedBook.language)}</p>
-              <p>{selectedBook.readingMode === 'tts_text' ? 'PDF metni Web Speech API ile okunacak' : 'Ses dosyası modu'}</p>
-              {selectedBook.readingMode === 'tts_text' && (
+              <p>{hasNaturalAudio(selectedBook) ? 'PDF doğal ses dosyasıyla okunacak' : (getPlaybackMode(selectedBook) === 'tts_text' ? 'PDF metni Web Speech API ile okunacak' : 'Ses dosyası modu')}</p>
+              {getPlaybackMode(selectedBook) === 'tts_text' && (
                 <p>
                   Geçerli sayfa: {textChunks[currentChunkIndex]?.pageStart || 'hazır değil'}
                   {bookmark ? ` - İşaretli yer: sayfa ${bookmark.pageStart}` : ''}
@@ -1903,7 +2045,7 @@ export default function BlindMode() {
                 onFocus={() => giveFeedback('focus')}
               >
                 <strong>{book.title}</strong>
-                <span>{book.category || 'Kategori yok'} - {book.readingMode === 'tts_text' ? 'PDF/TTS' : (book.chapterTitle || 'Ses')}</span>
+                <span>{book.category || 'Kategori yok'} - {hasNaturalAudio(book) ? 'PDF/Doğal Ses' : (book.readingMode === 'tts_text' ? 'PDF/TTS' : (book.chapterTitle || 'Ses'))}</span>
               </button>
             ))}
           </section>
@@ -1924,6 +2066,9 @@ export default function BlindMode() {
             </p>
             {selectedAnnouncement?.detailUrl && (
               <p>Kaynak: {selectedAnnouncement.detailUrl}</p>
+            )}
+            {selectedAnnouncement && (
+              <p>Komutlar: Detay oku, özet oku, sonraki duyuru, önceki duyuru, geri dön.</p>
             )}
           </section>
 

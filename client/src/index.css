@@ -1828,6 +1828,82 @@ body {
   margin: 0.45rem 0 0;
 }
 
+.qc-natural-audio-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: -0.6rem 0 1.5rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(154, 171, 133, 0.35);
+  border-radius: 8px;
+  background: #fffef6;
+  color: var(--color-text-dark);
+  font-weight: 700;
+}
+
+.qc-natural-audio-toggle input {
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--color-primary);
+}
+
+.natural-audio-admin-panel {
+  margin-top: 1.5rem;
+}
+
+.admin-library-panel {
+  margin-top: 1.5rem;
+}
+
+.natural-audio-book-list,
+.admin-library-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.natural-audio-book-row,
+.admin-library-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fbfbf6;
+}
+
+.admin-library-row {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.natural-audio-book-row div,
+.admin-library-row div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.natural-audio-book-row strong,
+.admin-library-row strong {
+  color: var(--color-text-dark);
+}
+
+.natural-audio-book-row span,
+.admin-library-row span,
+.admin-library-row small {
+  color: var(--color-text-muted);
+}
+
+.natural-audio-book-row .btn-sage {
+  min-width: 12rem;
+}
+
+.admin-library-row .qc-action {
+  min-width: 5rem;
+  padding: 0.7rem 1rem;
+}
+
 .qc-chapter-list {
   padding: 0;
   margin: 0.85rem 0 0;
@@ -2217,6 +2293,25 @@ body {
 }
 
 .blind-page-simple:focus-visible {
+  outline: 8px solid #8fa17b;
+  outline-offset: -12px;
+}
+
+.blind-simple-touch-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  display: grid;
+  place-items: center;
+  font: inherit;
+  cursor: pointer;
+}
+
+.blind-simple-touch-surface:focus-visible {
   outline: 8px solid #8fa17b;
   outline-offset: -12px;
 }
@@ -3150,6 +3245,8 @@ textarea {
   .qc-panel-heading,
   .qc-detail-header,
   .premium-tts-panel,
+  .natural-audio-book-row,
+  .admin-library-row,
   .settings-switch-row {
     flex-direction: column;
     align-items: stretch;
@@ -3157,7 +3254,9 @@ textarea {
 
   .dashboard-hero-actions,
   .correction-actions,
-  .qc-actions {
+  .qc-actions,
+  .natural-audio-book-row .btn-sage,
+  .admin-library-row .qc-action {
     width: 100%;
   }
 

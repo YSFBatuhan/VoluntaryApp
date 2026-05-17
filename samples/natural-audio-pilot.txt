@@ -1,0 +1,4 @@
+Merhaba. Bu Duyum projesi için doğal ses üretim testidir.
+PDF metinleri önce parçalara ayrılır, sonra bu parçalar doğal ses dosyalarına dönüştürülür.
+Ses dosyaları hazır olduktan sonra kullanıcılar kitabı Web Speech yerine bu kayıtlardan dinler.
+Türkçe karakter testi: ğ, ü, ş, ı, ö, ç ve İ harfleri anlaşılır şekilde okunmalıdır.

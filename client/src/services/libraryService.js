@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   increment,
@@ -8,10 +9,12 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { deleteObject, ref as storageRef } from 'firebase/storage';
+import { db, storage } from '../firebase/config';
 import { buildKeywords, normalizeText } from './textUtils';
 
 export async function createAudioBook({ form, audioUpload, currentUser, userProfile }) {
@@ -149,6 +152,16 @@ export async function createPdfBook({ form, pdfInfo, currentUser, userProfile, p
     keywords: buildKeywords([form.title, form.author, form.category, pdfInfo.fileName]),
     status: publishImmediately ? 'published' : 'pending',
     visibility: 'public',
+    naturalAudio: {
+      status: 'not_requested',
+      provider: '',
+      voiceId: '',
+      chapterCount: 0,
+      generatedAt: null,
+      requestedAt: null,
+      requestedBy: '',
+      error: '',
+    },
     chapterCount: 1,
     textChunkCount: pdfInfo.chunks.length,
     totalDurationSec: Math.round((pdfInfo.wordCount / 150) * 60),
@@ -272,6 +285,38 @@ export async function getPendingReviewBooks() {
     .sort((a, b) => getMillis(b.createdAt) - getMillis(a.createdAt));
 }
 
+export async function getAllBooksForAdmin() {
+  const booksQuery = query(
+    collection(db, 'books'),
+    limit(100),
+  );
+  const snapshot = await getDocs(booksQuery);
+
+  return snapshot.docs
+    .map((bookDoc) => ({
+      id: bookDoc.id,
+      ...bookDoc.data(),
+    }))
+    .sort((a, b) => getMillis(b.createdAt || b.publishedAt) - getMillis(a.createdAt || a.publishedAt));
+}
+
+export async function getPublishedPdfBooksForNaturalAudio() {
+  const booksQuery = query(
+    collection(db, 'books'),
+    where('status', '==', 'published'),
+    limit(50),
+  );
+  const snapshot = await getDocs(booksQuery);
+
+  return snapshot.docs
+    .map((bookDoc) => ({
+      id: bookDoc.id,
+      ...bookDoc.data(),
+    }))
+    .filter(book => book.sourceType === 'pdf')
+    .sort((a, b) => getMillis(b.publishedAt) - getMillis(a.publishedAt));
+}
+
 export async function getBooksByOwner(ownerId) {
   const booksQuery = query(
     collection(db, 'books'),
@@ -315,7 +360,14 @@ export async function getBookReviewPreview(bookId) {
   };
 }
 
-export async function updateBookReviewStatus({ bookId, status, reviewNote, reviewerId }) {
+export async function updateBookReviewStatus({
+  bookId,
+  status,
+  reviewNote,
+  reviewerId,
+  requestNaturalAudio = false,
+  naturalAudioProvider = 'local_worker',
+}) {
   const nextStatus = status === 'approved' ? 'published' : status;
   const batch = writeBatch(db);
   const bookRef = doc(db, 'books', bookId);
@@ -328,11 +380,25 @@ export async function updateBookReviewStatus({ bookId, status, reviewNote, revie
     reviewedAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
-
-  batch.update(bookRef, {
+  const bookPayload = {
     ...reviewPayload,
     publishedAt: nextStatus === 'published' ? serverTimestamp() : null,
-  });
+  };
+
+  if (nextStatus === 'published' && requestNaturalAudio) {
+    bookPayload.naturalAudio = {
+      status: 'queued',
+      provider: naturalAudioProvider,
+      voiceId: '',
+      chapterCount: 0,
+      generatedAt: null,
+      requestedAt: serverTimestamp(),
+      requestedBy: reviewerId,
+      error: '',
+    };
+  }
+
+  batch.update(bookRef, bookPayload);
 
   chaptersSnapshot.docs.forEach((chapterDoc) => {
     batch.update(doc(db, 'chapters', chapterDoc.id), {
@@ -346,6 +412,77 @@ export async function updateBookReviewStatus({ bookId, status, reviewNote, revie
   });
 
   await batch.commit();
+}
+
+export async function requestNaturalAudioGeneration({
+  bookId,
+  requesterId,
+  provider = 'local_worker',
+  voiceId = '',
+}) {
+  if (!bookId) {
+    throw new Error('Doğal ses üretimine alınacak kitap bulunamadı.');
+  }
+
+  await updateDoc(doc(db, 'books', bookId), {
+    naturalAudio: {
+      status: 'queued',
+      provider,
+      voiceId,
+      chapterCount: 0,
+      generatedAt: null,
+      requestedAt: serverTimestamp(),
+      requestedBy: requesterId || '',
+      error: '',
+    },
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function deleteBookCascade(bookId) {
+  if (!bookId) {
+    throw new Error('Silinecek kitap bulunamadı.');
+  }
+
+  const [
+    chaptersSnapshot,
+    chunksSnapshot,
+    progressSnapshot,
+    favoritesSnapshot,
+  ] = await Promise.all([
+    getDocs(query(collection(db, 'chapters'), where('bookId', '==', bookId))),
+    getDocs(query(collection(db, 'book_text_chunks'), where('bookId', '==', bookId))),
+    getDocs(query(collection(db, 'playback_progress'), where('bookId', '==', bookId))),
+    getDocs(query(collection(db, 'favorites'), where('bookId', '==', bookId))),
+  ]);
+
+  const docsToDelete = [
+    ...chaptersSnapshot.docs,
+    ...chunksSnapshot.docs,
+    ...progressSnapshot.docs,
+    ...favoritesSnapshot.docs,
+  ];
+  const storagePaths = [
+    ...chaptersSnapshot.docs
+      .map(snapshotDoc => snapshotDoc.data()?.audio?.publicId)
+      .filter(Boolean),
+  ];
+
+  for (let index = 0; index < docsToDelete.length; index += 450) {
+    const batch = writeBatch(db);
+    docsToDelete.slice(index, index + 450).forEach((snapshotDoc) => {
+      batch.delete(snapshotDoc.ref);
+    });
+    await batch.commit();
+  }
+
+  await deleteDoc(doc(db, 'books', bookId));
+
+  await Promise.allSettled(
+    [...new Set(storagePaths)]
+      .filter(path => !String(path).startsWith('http'))
+      .map(path => deleteObject(storageRef(storage, path))),
+  );
 }
 
 export async function updateVolunteerBookMetadata({ bookId, ownerId, form }) {

@@ -2,15 +2,19 @@
 node_modules/
 client/node_modules/
 functions/node_modules/
+.venv/
 
 # Build output
 client/dist/
 client/vite-*.log
+artifacts/
+models/
 
 # Environment variables (GİZLİ - asla push etme!)
 client/.env
 client/.env.local
 client/.env.production
+secrets/
 
 # Editor
 .vscode/
